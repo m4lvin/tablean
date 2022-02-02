@@ -155,7 +155,7 @@ begin
     case box: newf {
       -- set coMo := ,
       --unfold combinedModel,
-      change (evaluate (combinedModel collection (λ c, (·c) ∈ X)).fst (combinedModel collection (λ (c : char), (·c) ∈ X)).snd (~[]newf)),
+      change (evaluate (combinedModel collection (λ c, (·c) ∈ X)).fst (combinedModel collection (λ (c : char), (·c) ∈ X)).snd (~□newf)),
       unfold evaluate,
       rw not_forall,
       -- need a reachable world where newf holds, choose the witness
@@ -214,7 +214,7 @@ end
 -- A simple set of formulas X is satisfiable if and only if
 -- it is not closed  and  for all ¬[A]R ∈ X also XA; ¬R is satisfiable.
 lemma Lemma1_simple_sat_iff_all_projections_sat { X : finset formula } :
-  simple X → (setSatisfiable X ↔ (¬ closed X ∧ ∀ R, (~([]R)) ∈ X → setSatisfiable (projection X ∪ {~R}))) :=
+  simple X → (setSatisfiable X ↔ (¬ closed X ∧ ∀ R, (~□R) ∈ X → setSatisfiable (projection X ∪ {~R}))) :=
 begin
   intro X_is_simple,
   split,
@@ -241,7 +241,7 @@ begin
     },
     { -- show that for each ~[]R ∈ X the projection with ~R is satisfiable:
       intros R notboxr_in_X,
-      let w_sat_notboxr := w_sat_X (~([]R)) notboxr_in_X,
+      let w_sat_notboxr := w_sat_X (~□R) notboxr_in_X,
       -- unfold evaluatePoint at w_sat_notboxr,
       unfold evaluate at w_sat_notboxr,
       simp at w_sat_notboxr,
@@ -254,7 +254,7 @@ begin
       {
         intro boxg_in_X,
         rw proj at boxg_in_X,
-        specialize w_sat_X ([]g) boxg_in_X,
+        specialize w_sat_X (□g) boxg_in_X,
         unfold evaluate at w_sat_X,
         exact w_sat_X v w_rel_v,
       },
@@ -271,7 +271,7 @@ begin
     unfold setSatisfiable at all_pro_sat,
     unfold setSatisfiable,
     -- Let's build a new Kripke model!
-    let β := { R : formula | ~[]R ∈ X },
+    let β := { R : formula | ~□R ∈ X },
     -- beware, using Axioms of Choice here!
     choose typeFor this_pro_sat using all_pro_sat,
     choose modelFor this_pro_sat using this_pro_sat,
