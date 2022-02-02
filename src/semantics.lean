@@ -14,7 +14,7 @@ def evaluate {W : Type} : kripkeModel W → W → formula → Prop
 | M w (· c)   := M.val w c
 | M w (~ φ)   := not (evaluate M w φ)
 | M w (φ ⋀ ψ) := evaluate M w φ ∧ evaluate M w ψ
-| M w ([] φ) := ∀ v : W, (M.rel w v → evaluate M v φ)
+| M w (□ φ) := ∀ v : W, (M.rel w v → evaluate M v φ)
 
 @[simp]
 def evaluatePoint {W : Type} : (kripkeModel W × W) → formula → Prop

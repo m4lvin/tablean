@@ -21,7 +21,7 @@ def r := formula.atom_prop 'r'
 /- Notation and abbreviations -/
 notation `·` c       := formula.atom_prop c
 prefix `~`:88        := formula.neg
-notation `[]`        := formula.box
+prefix `□`:77        := formula.box
 infixr `⋀`:66        := formula.and
 @[simp]
 def impl (φ ψ : formula) := ~(φ ⋀ (~ψ))
@@ -40,7 +40,7 @@ def lengthOfFormula : formula → ℕ
 | (· c)   := 1
 | (~ φ)   := 1 + lengthOfFormula φ
 | (φ ⋀ ψ) := 1 + lengthOfFormula φ + lengthOfFormula ψ
-| ([] φ)  := 1 + lengthOfFormula φ
+| (□ φ)  := 1 + lengthOfFormula φ
 
 def lengthOfSet : finset formula → ℕ
 | X := finset.fold (+) 0 lengthOfFormula X
@@ -50,7 +50,7 @@ def complexityOfFormula : formula → ℕ
 | (· c)   := 1
 | (~ φ)   := 1 + lengthOfFormula φ
 | (φ ⋀ ψ) := 1 + max (lengthOfFormula φ) (lengthOfFormula ψ)
-| ([] φ)  := 1 + lengthOfFormula φ
+| (□ φ)  := 1 + lengthOfFormula φ
 
 def complexityOfSet : finset formula → ℕ
 | X := finset.fold (+) 0 complexityOfFormula X
@@ -67,7 +67,7 @@ def vocabOfFormula : formula → finset char
 | ( (· c))  := { c }
 | (~ φ)     := vocabOfFormula φ
 | ((φ ⋀ ψ)) := vocabOfFormula φ ∪ vocabOfFormula ψ
-| (([] φ))  := vocabOfFormula φ
+| ((□ φ))   := vocabOfFormula φ
 
 def vocabOfSetFormula : finset formula → finset char
 | (X) := finset.fold (∪) ∅ vocabOfFormula X

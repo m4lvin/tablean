@@ -20,8 +20,8 @@ def modelGraph ( Worlds : set (set formula) ) :=
     i   := ∀ X : W, saturated X.val  ∧  ⊥ ∉ X.val  ∧  (∀ P, P ∈ X.val  →  ~P ∉ X.val),
     ii  := λ M : kripkeModel W, (∀ (X : W) pp, ((·pp) ∈ X.val ↔ M.val X pp)),
            -- Note: Borzechowski only has → in ii. We follow BRV, Def 4.18 and 4.84.
-    iii := λ M : kripkeModel W, ∀ (X Y : W) P, M.rel X Y → []P ∈ X.val → P ∈ Y.val,
-    iv  := λ M : kripkeModel W, ∀ (X : W) P, ~[]P ∈ X.val → ∃ Y, M.rel X Y ∧ ~P ∈ Y.val
+    iii := λ M : kripkeModel W, ∀ (X Y : W) P, M.rel X Y → □P ∈ X.val → P ∈ Y.val,
+    iv  := λ M : kripkeModel W, ∀ (X : W) P, ~□P ∈ X.val → ∃ Y, M.rel X Y ∧ ~P ∈ Y.val
   in subtype ( λ M : kripkeModel W , i ∧ ii M ∧ iii M ∧ iv M )
 
 -- Lemma 9, page 32
@@ -32,9 +32,9 @@ begin
   cases MG with M M_prop,
   rcases M_prop with ⟨ i, ii, iii, iv ⟩,
   -- induction loading!!
-  let plus  := λ P (X : Worlds),   P ∈ X.val →   evaluate M X P,
-  let minus := λ P (X : Worlds),  ~P ∈ X.val → ¬ evaluate M X P,
-  let oh    := λ P (X : Worlds), []P ∈ X.val → ∀ Y, M.rel X Y → P ∈ Y.val,
+  let plus  := λ P (X : Worlds),  P ∈ X.val →   evaluate M X P,
+  let minus := λ P (X : Worlds), ~P ∈ X.val → ¬ evaluate M X P,
+  let oh    := λ P (X : Worlds), □P ∈ X.val → ∀ Y, M.rel X Y → P ∈ Y.val,
   have claim : ∀ P X, plus P X ∧ minus P X ∧ oh P X, {
     intro P,
     induction P, all_goals { intro X, },
@@ -101,7 +101,7 @@ begin
         use Y, split, exact X_rel_Y,
         rcases IH Y with ⟨ _, minus_IH_Y, _ ⟩,
         exact minus_IH_Y notP_in_Y, },
-      { intros boxBoxP_in_X Y X_rel_Y, exact iii X Y ([]P) X_rel_Y boxBoxP_in_X, }
+      { intros boxBoxP_in_X Y X_rel_Y, exact iii X Y (□P) X_rel_Y boxBoxP_in_X, }
     },
   },
   apply (claim P X).left,

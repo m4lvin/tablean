@@ -14,20 +14,20 @@ def simpleForm : formula → Prop
 | ⊥       := true
 | (· _)   := true
 | ~(· _)  := true
-| ([] _)  := true
-| ~([] _) := true
+| (□ _)  := true
+| ~(□ _) := true
 | _       := false
 def simple : finset formula → Prop := λ X, ∀ P ∈ X, simpleForm P
 -- Let X_A := { R | [A]R ∈ X }.
 @[simp]
 def formProjection : formula → option formula
-| ([]f) := some f
+| (□f) := some f
 | _     := none
 def projection : finset formula → finset formula :=
   finset.pimage (λ f, part.of_option (formProjection f))
 
 lemma proj { g: formula } { X : finset formula } :
-  g ∈ projection X ↔ []g ∈ X :=
+  g ∈ projection X ↔ □g ∈ X :=
 begin
   unfold projection,
   simp,
@@ -40,7 +40,7 @@ begin
   },
   {
     intro rhs,
-    use []g,
+    use □g,
     split,
     exact rhs,
     simp,
@@ -69,7 +69,7 @@ inductive rule : finset formula → finset (finset formula) → Type
 | nCo { α f g } ( h : ~(f ⋀ g)   ∈ α ) : rule α { α \ { ~ (f ⋀ g) } ∪ {~f}
                                                 , α \ { ~ (f ⋀ g) } ∪ {~g} }
 -- the atomic rule:
-| atm { α f   } ( h : ~[]f       ∈ α ) : rule α { projection α ∪ {~f} }
+| atm { α f   } ( h : ~□f       ∈ α ) : rule α { projection α ∪ {~f} }
 
 inductive tableau : finset formula → Type
 | byRule { α B } (_ : rule α B) (_ : Π β ∈ B, tableau β) : tableau α
