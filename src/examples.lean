@@ -5,7 +5,7 @@ lemma mytaut1 (p : char) : tautology ((·p) ↣ (·p)) :=
 begin
   unfold tautology evaluatePoint evaluate,
   intros W M w,
-  tauto,
+  simp, unfold evaluate, tauto,
 end
 
 open classical
@@ -15,7 +15,7 @@ begin
   unfold tautology evaluatePoint evaluate,
   intros W M w,
   classical,
-  tauto,
+  simp, unfold evaluate, tauto,
 end
 
 def myModel : kripkeModel ℕ :=
@@ -34,18 +34,21 @@ end
 -- Some validities of basic modal logic
 
 lemma boxTop :
-  tautology ([]⊤) :=
+  tautology (□⊤) :=
 begin
   unfold tautology evaluatePoint evaluate,
   tauto,
 end
 
 lemma A3 (X Y : formula) :
-  tautology ([](X ⋀ Y) ↣ []X ⋀ []Y) :=
+  tautology (□(X ⋀ Y) ↣ □X ⋀ □Y) :=
 begin
   unfold tautology evaluatePoint evaluate,
   intros W M w,
   by_contradiction hyp,
+  simp at hyp,
+  unfold evaluate at hyp,
+  simp at hyp,
   cases hyp with hl hr,
   contrapose! hr,
   split,
