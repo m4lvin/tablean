@@ -77,64 +77,115 @@ begin
 end
 
 
--- Example 2
-example : closedTableau { (·'r') ⋀ ~[](·'p'), (· 'r') ↣ []((·'p') ⋀ (·'q')) } :=
+def emptyTableau : Π (β : finset formula), β ∈ ∅ → tableau β :=
 begin
-  set α : finset formula := { (·'r') ⋀ ~[](·'p'), (· 'r') ↣ []((·'p') ⋀ (·'q')) },
+  intros beta b_in_empty,
+  exact absurd b_in_empty (finset.not_mem_empty beta),
+end
+
+
+-- Example 2
+example : closedTableau { r ⋀ ~□p, r ↣ □(p ⋀ q) } :=
+begin
+  let α := { r ⋀ ~□p, r ↣ □(p ⋀ q) },
   change closedTableau α,
   dsimp at *, -- gets rid of ↣
   split,
   rotate,
-{
-  -- con
-  apply tableau.byRule (rule.con (by {simp} : ((·'r') ⋀ ~[](·'p')) ∈ α)),
-  intros branch branch_def,
-  simp at branch_def,
-  -- nCo
-  apply tableau.byRule (rule.nCo (by {finish} : ~((·'r') ⋀ (~((·'p')⋀·'q').box)) ∈ branch)),
-  subst branch_def,
-  dsimp at *,
-  have rightBranch : tableau { (·'r'), ~(·'p').box, ~·'r'}, {
-    let stuff : finset formula := { (·'r'), ~(·'p').box, ~·'r'},
-    -- closed with negationg
-    apply tableau.byRule (rule.not (by {simp} : (·'r') ∈ stuff ∧ ~(·'r') ∈ stuff)),
-    intros noMorePremises inEmpty, finish,
-  },
-  have leftBranch : tableau { (·'r'), ~(·'p').box, ~~((·'p')⋀·'q').box }, {
-    -- neg:
-    apply tableau.byRule (rule.neg (by {simp} : ~~((·'p')⋀·'q').box ∈ { (·'r'), ~(·'p').box, ~~((·'p')⋀·'q').box })),
-    intros child childDef,
-    simp [*] at *,
-    subst childDef,
-    change tableau ({·'r', ~(·'p').box, ((·'p')⋀·'q').box}),
-    -- atm:
-    apply tableau.byRule (rule.atm (by {simp} : ~(·'p').box ∈ {·'r', ~(·'p').box, ((·'p')⋀·'q').box} )),
-    intros child childDef,
-    simp [*] at *,
-    subst childDef,
-    unfold projection,
+  { -- con
+    apply tableau.byRule (rule.con (by {simp} : (r ⋀ ~□p) ∈ α )),
+    intros branch branch_def,
+    simp at branch_def,
+    -- nCo
+    apply tableau.byRule (rule.nCo (by {finish} : ~(r ⋀ (~(p ⋀ q).box)) ∈ branch)),
+    subst branch_def,
     dsimp at *,
-    -- change tableau ({~(·'p'), ((·'p')⋀·'q')}), -- blocked due to formProjection
-    -- con:
-    apply tableau.byRule,
-    apply @rule.con _ (·'p') (·'q'),
-    simp at *,
-    use ((·'p')⋀·'q').box,
-    simp,
-    intros child childDef,
-    simp at *,
-    subst childDef,
-    -- not:
-    apply tableau.byRule,
-    apply @rule.not _ (·'p'),
-    simp,
-    intros noMorePremises inEmpty, finish,
+    intros b b_in,
+    simp at b_in,
+    change b = {r, ~□p, ~r} ∨
+           b = {r, ~□p, ~~□(p⋀q)} at b_in,
+    refine if h1 : b = {r, ~□p, ~r} then _ else if h2 : b = {r, ~□p, ~~□(p⋀q)} then _ else _,
+    { rw h1, -- right branch
+      let stuff : finset formula := { r, ~p.box, ~r},
+      -- not:
+      apply tableau.byRule (rule.not (by {simp} : r ∈ stuff ∧ ~r ∈ stuff)),
+      exact emptyTableau,
+    },
+    { rw h2, --left branch
+      -- neg:
+      apply tableau.byRule (rule.neg (by {simp} : ~~□(p ⋀ q) ∈ { r, ~□p, ~~□(p ⋀ q) })),
+      intros child childDef,
+      simp [*] at *,
+      subst childDef,
+      -- change tableau ({r, ~□p, □(p ⋀ q)}), -- SLOW, why?
+      -- atm:
+      apply tableau.byRule (rule.atm (by {simp} : ~□p ∈ {r, ~□p, □(p ⋀ q)} )),
+      intros child childDef,
+      simp [*] at *,
+      subst childDef,
+      unfold projection,
+      dsimp at *,
+      -- change tableau ({~p, (p⋀·'q')}), -- blocked due to formProjection
+      -- con:
+      apply tableau.byRule,
+      apply @rule.con _ p q,
+      simp at *,
+      use □(p ⋀ q),
+      simp,
+      intros child childDef,
+      simp at *,
+      subst childDef,
+      -- not:
+      apply tableau.byRule,
+      apply @rule.not _ p,
+      simp,
+      exact emptyTableau,
+    },
+    { finish, }
   },
+  { -- show that it is closed
+    apply isClosedTableau.byRule,
+    intros β β_prop,
+    simp at β_prop,
+    simp,
+    subst β_prop,
 
-  sorry, -- how to combine the two branches to a larger tableau?
-},
-{
-  -- show that it is closed
-  sorry,
-},
+    apply isClosedTableau.byRule,
+    intros β β_prop_left_right,
+
+    cases β_prop_left_right with β_prop β_prop,
+    { subst β_prop,
+      apply isClosedTableau.byRule,
+      intros β β_prop,
+      simp at β_prop,
+      finish, },
+    { simp at *,
+      cases β_prop with β_prop in_empty,
+      subst β_prop,
+      apply isClosedTableau.byRule,
+      intros β β_prop,
+      simp at β_prop,
+
+      subst β_prop,
+      simp at *,
+      apply isClosedTableau.byRule,
+      intros β β_prop,
+      simp at β_prop,
+      subst β_prop,
+
+      apply isClosedTableau.byRule,
+      intros β β_prop,
+      simp at β_prop,
+      subst β_prop,
+      simp at *,
+
+      apply isClosedTableau.byRule,
+      intros β β_prop,
+      simp at β_prop,
+      finish,
+
+      -- in_empty
+      exact absurd in_empty (list.not_mem_nil β),
+     },
+  },
 end
