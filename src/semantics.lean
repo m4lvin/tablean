@@ -9,24 +9,19 @@ structure kripkeModel (W : Type) : Type :=
   (val : W → char → Prop)
   (rel : W → W → Prop)
 
-def evaluate {W : Type} : kripkeModel W → W → formula → Prop
-| M w ⊥       := false
-| M w (· c)   := M.val w c
-| M w (~ φ)   := not (evaluate M w φ)
-| M w (φ ⋀ ψ) := evaluate M w φ ∧ evaluate M w ψ
-| M w (□ φ) := ∀ v : W, (M.rel w v → evaluate M v φ)
+def evaluate {W : Type} : (kripkeModel W × W) → formula → Prop
+| (M,w) ⊥     := false
+| (M,w) (· c) := M.val w c
+| Mw (~ φ)    := not (evaluate Mw φ)
+| Mw (φ ⋀ ψ)  := evaluate Mw φ ∧ evaluate Mw ψ
+| (M,w) (□ φ) := ∀ v : W, (M.rel w v → evaluate (M,v) φ)
 
-@[simp]
-def evaluatePoint {W : Type} : (kripkeModel W × W) → formula → Prop
-| (M,w) ϕ := evaluate M w ϕ
--- remove one of the un/curried functions here?
-
-def tautology     (φ : formula) := ∀ W (M : kripkeModel W) w, evaluatePoint (M, w) φ
-def contradiction (φ : formula) := ∀ W (M : kripkeModel W) w, ¬ evaluatePoint (M, w) φ
+def tautology     (φ : formula) := ∀ W (M : kripkeModel W) w, evaluate (M,w) φ
+def contradiction (φ : formula) := ∀ W (M : kripkeModel W) w, ¬ evaluate (M,w) φ
 
 -- TODO class satisf
-def satisfiable   (φ : formula) := ∃ W (M : kripkeModel W) w, evaluate M w φ
-def setSatisfiable (X : finset formula) := ∃ W (M : kripkeModel W) w, (∀ φ ∈ X, evaluate M w φ)
+def satisfiable   (φ : formula) := ∃ W (M : kripkeModel W) w, evaluate (M,w) φ
+def setSatisfiable (X : finset formula) := ∃ W (M : kripkeModel W) w, (∀ φ ∈ X, evaluate (M,w) φ)
 
 lemma notsatisfnotThenTaut : ∀ φ, ¬ satisfiable (~φ) → tautology φ :=
 begin
@@ -51,14 +46,14 @@ begin
 end
 
 def semImplies_sets (X : finset formula) (Y : finset formula) := ∀ (W : Type) (M : kripkeModel W) w,
-  (∀ φ ∈ X, evaluatePoint (M, w) φ) → (∀ ψ ∈ Y, evaluatePoint (M, w) ψ)
+  (∀ φ ∈ X, evaluate (M,w) φ) → (∀ ψ ∈ Y, evaluate (M,w) ψ)
 
 class vDash {α : Type} {β : Type} := (semImplies : α → β → Prop)
 open vDash
 @[simp]
-instance model_canSemImply_form {W : Type} : vDash := vDash.mk (@evaluatePoint W)
+instance model_canSemImply_form {W : Type} : vDash := vDash.mk (@evaluate W)
 @[simp]
-instance model_canSemImply_set {W : Type} : vDash := @vDash.mk (kripkeModel W × W) (finset formula) (λ Mw X, ∀ f ∈ X, @evaluatePoint W Mw f)
+instance model_canSemImply_set {W : Type} : vDash := @vDash.mk (kripkeModel W × W) (finset formula) (λ Mw X, ∀ f ∈ X, @evaluate W Mw f)
 instance set_canSemImply_set : vDash := vDash.mk semImplies_sets
 instance set_canSemImply_form : vDash := vDash.mk (λ X ψ, semImplies_sets X {ψ})
 instance form_canSemImply_set : vDash := vDash.mk (λ φ X, semImplies_sets {φ} X)

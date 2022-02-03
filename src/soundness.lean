@@ -57,7 +57,7 @@ end
 lemma combMo_preserves_truth_at_oldWOrld { β : Type }
   (collection : β → Σ (W : Type), kripkeModel W × W) (newVal : char → Prop)
   : (∀ (f : formula) (R : β) (oldWorld : (collection R).fst),
-    evaluate (combinedModel collection newVal).fst (sum.inr ⟨R, oldWorld⟩) f ↔ evaluate (collection R).snd.fst oldWorld f) :=
+    evaluate ((combinedModel collection newVal).fst, (sum.inr ⟨R, oldWorld⟩)) f ↔ evaluate ((collection R).snd.fst, oldWorld) f) :=
 begin
   intro f,
   induction f ; intros R oldWorld,
@@ -126,8 +126,8 @@ lemma combMo_sat_X { X : finset formula } { β : set formula } { beta_def : β =
   (simple_X : simple X)
   (not_closed_X : ¬ closed X)
   (collection : β → Σ (W : Type), kripkeModel W × W)
-  (all_pro_sat : ∀ R : β, ∀ f ∈ projection X ∪ {~R}, evaluate (collection R).snd.fst (collection R).snd.snd f)
-  : (∀ f ∈ X, evaluate (combinedModel collection (λ c, (formula.atom_prop c ∈ X))).fst (combinedModel collection (λ c, (formula.atom_prop c ∈ X))).snd f) :=
+  (all_pro_sat : ∀ R : β, ∀ f ∈ projection X ∪ {~R}, evaluate ((collection R).snd.fst, (collection R).snd.snd) f)
+  : (∀ f ∈ X, evaluate ((combinedModel collection (λ c, (formula.atom_prop c ∈ X))).fst, (combinedModel collection (λ c, (formula.atom_prop c ∈ X))).snd) f) :=
 begin
   intros f f_in_X,
   cases f, -- no induction because X is simple
@@ -155,7 +155,7 @@ begin
     case box: newf {
       -- set coMo := ,
       --unfold combinedModel,
-      change (evaluate (combinedModel collection (λ c, (·c) ∈ X)).fst (combinedModel collection (λ (c : char), (·c) ∈ X)).snd (~□newf)),
+      change (evaluate ((combinedModel collection (λ c, (·c) ∈ X)).fst, (combinedModel collection (λ (c : char), (·c) ∈ X)).snd) (~□newf)),
       unfold evaluate,
       rw not_forall,
       -- need a reachable world where newf holds, choose the witness
@@ -175,8 +175,8 @@ begin
         have coMoLemma := combMo_preserves_truth_at_oldWOrld collection (λ (c : char), (·c) ∈ X) newf ⟨newf, h⟩ (collection ⟨newf, h⟩).snd.snd,
         rw coMoLemma,
         specialize all_pro_sat ⟨newf, h⟩ (~newf),
-        simp at all_pro_sat,
         unfold evaluate at all_pro_sat,
+        simp at *,
         exact all_pro_sat,
       },
     },
@@ -205,7 +205,11 @@ begin
     cases all_pro_sat with all_pro_sat_l _,
     rw ← proj at f_in_X,
     specialize all_pro_sat_l f_in_X,
-    rw (heq_iff_eq.mp (heq.symm is_rel)) at all_pro_sat_l,
+    have sameWorld : otherWorld.snd = (collection otherWorld.fst).snd.snd, {
+      rw (heq_iff_eq.mp (heq.symm is_rel)),
+    },
+    rw sameWorld,
+    simp,
     exact all_pro_sat_l,
   },
 end
@@ -334,22 +338,20 @@ begin
   },
   case rule.not : a f hyp {
     by_contradiction,
-    have w_sat_f : evaluatePoint (M, w) f , {
+    have w_sat_f : evaluate (M, w) f , {
       apply w_sat_a,
       exact hyp.left,
     },
-    have w_sat_not_f : evaluatePoint (M, w) (~f) , {
+    have w_sat_not_f : evaluate (M, w) (~f) , {
       apply w_sat_a (~f),
       exact hyp.right,
     },
-    unfold evaluatePoint at *,
     unfold evaluate at *,
     exact absurd w_sat_f w_sat_not_f,
   },
   case rule.neg : a f hyp {
-    have w_sat_f : evaluatePoint (M, w) f, {
+    have w_sat_f : evaluate (M, w) f, {
       specialize w_sat_a (~~f) hyp,
-      unfold evaluatePoint at *,
       unfold evaluate at *,
       finish,
     },

@@ -3,7 +3,7 @@ import semantics
 
 lemma mytaut1 (p : char) : tautology ((·p) ↣ (·p)) :=
 begin
-  unfold tautology evaluatePoint evaluate,
+  unfold tautology evaluate,
   intros W M w,
   simp, unfold evaluate, tauto,
 end
@@ -12,7 +12,7 @@ open classical
 
 lemma mytaut2 (p : char) : tautology ((~ (~ · p)) ↣ · p) :=
 begin
-  unfold tautology evaluatePoint evaluate,
+  unfold tautology evaluate,
   intros W M w,
   classical,
   simp, unfold evaluate, tauto,
@@ -28,7 +28,7 @@ begin
   existsi ℕ,
   existsi myModel,
   existsi 1,
-  unfold evaluatePoint evaluate,
+  unfold evaluate,
 end
 
 -- Some validities of basic modal logic
@@ -36,14 +36,14 @@ end
 lemma boxTop :
   tautology (□⊤) :=
 begin
-  unfold tautology evaluatePoint evaluate,
+  unfold tautology evaluate,
   tauto,
 end
 
 lemma A3 (X Y : formula) :
   tautology (□(X ⋀ Y) ↣ □X ⋀ □Y) :=
 begin
-  unfold tautology evaluatePoint evaluate,
+  unfold tautology evaluate,
   intros W M w,
   by_contradiction hyp,
   simp at hyp,

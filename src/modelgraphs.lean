@@ -26,14 +26,14 @@ def modelGraph ( Worlds : set (set formula) ) :=
 
 -- Lemma 9, page 32
 lemma truthLemma { Worlds : set (set formula) } (MG : modelGraph Worlds) :
-  ∀ X : Worlds, ∀ P, P ∈ X.val → evaluate MG.val X P :=
+  ∀ X : Worlds, ∀ P, P ∈ X.val → evaluate (MG.val,X) P :=
 begin
   intros X P,
   cases MG with M M_prop,
   rcases M_prop with ⟨ i, ii, iii, iv ⟩,
   -- induction loading!!
-  let plus  := λ P (X : Worlds),  P ∈ X.val →   evaluate M X P,
-  let minus := λ P (X : Worlds), ~P ∈ X.val → ¬ evaluate M X P,
+  let plus  := λ P (X : Worlds),  P ∈ X.val →   evaluate (M,X) P,
+  let minus := λ P (X : Worlds), ~P ∈ X.val → ¬ evaluate (M,X) P,
   let oh    := λ P (X : Worlds), □P ∈ X.val → ∀ Y, M.rel X Y → P ∈ Y.val,
   have claim : ∀ P X, plus P X ∧ minus P X ∧ oh P X, {
     intro P,
