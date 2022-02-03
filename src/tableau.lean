@@ -80,42 +80,47 @@ inductive rule : finset formula → finset (finset formula) → Type
 -- the atomic rule:
 | atm { α f   } ( h : ~□f       ∈ α ) : rule α { projection α ∪ {~f} }
 
--- these are actually maximal tableau!
+-- Note: any tableau is maximal.
 inductive tableau : finset formula → Type
 | byRule { α B } (_ : rule α B) (_ : Π β ∈ B, tableau β) : tableau α
-| isOpen { α   } : (¬ ∃ B (_ : rule α B), true) → tableau α
-  -- rename to "leaveOpen" or "stuck"
+| stuck { α   } : (¬ ∃ B (_ : rule α B), true) → tableau α
 
--- change this!? and avoid subtype, and do conversion function
--- inductive closedTableau : finset formula → Type
+-- approaches how to represent closed tableau:
+-- - inductive Prop and then subtype <<<<< currently using this.
+-- - inductive Type, then write conversion functions?
+--   inductive closedTableau : finset formula → Type -- might not be possible to do ∀ α :-(
 inductive isClosedTableau : Π { α : finset formula }, tableau α -> Prop
 | byRule { α } { B } (r : rule α B) (prev : Π β ∈ B, tableau β) :
     (∀ β, Π H : β ∈ B, isClosedTableau (prev β H)) → isClosedTableau (tableau.byRule r prev)
 
--- TODO
--- @[simp]
--- lemma closedTableaus :
---   isClosedTableau (tableau.byRule _ children) ↔  ∀ t ∈ children , isClosedTableau t :=
--- begin
---   sorry,
--- end
+@[simp]
+lemma closedTableauIffChildrenClosed { X B r children }:
+  isClosedTableau (tableau.byRule (r : rule X B) children) ↔
+    ∀ t H, isClosedTableau (children t H) :=
+begin
+  split,
+  { intro lhs,
+    intros t H,
+    cases lhs with _ _ _ _ children_closed,
+    apply children_closed, },
+  { intro rhs,
+    apply isClosedTableau.byRule,
+    apply rhs, },
+end
 
--- TODO
--- @[simp]
--- lemma openTableaus :
---   ¬ isClosedTableau (isOpen _):=
--- begin
---   sorry,
--- end
-
-
--- | byRule { α } { B } (r : rule α B) (prev : Π β ∈ B, tableau β) :
---    (∀ β, Π H : β ∈ B, isClosedTableau (prev β H)) → isClosedTableau (tableau.byRule r prev)
+@[simp]
+lemma stuckTableausIsNotClosed { X h } :
+  ¬ isClosedTableau (@tableau.stuck X h) :=
+begin
+  by_contra,
+  cases h,
+end
 
 
 @[simp]
 def closedTableau ( α ) := subtype (@isClosedTableau α)
 
+@[simp]
 def openTableau ( α ) := subtype (λ t, not (@isClosedTableau α t))
 
 -- is this useful/needed?
@@ -184,7 +189,7 @@ begin
   have canApplyRule := em (¬ ∃ B (_ : rule α B), true),
   cases canApplyRule,
   {
-    use tableau.isOpen canApplyRule,
+    use tableau.stuck canApplyRule,
   },
   {
     simp at canApplyRule,

@@ -19,14 +19,11 @@ begin
     tauto,
   },
   {
-    apply isClosedTableau.byRule (rule.neg (finset.mem_singleton.mpr (refl (~~⊥)))),
+    simp,
     intros β inB,
     have same : β = {⊥}, { finish, },
-    subst same, -- this was the key idea to get rid of .mpr and cast :-)
-    apply isClosedTableau.byRule,
-    intro β,
-    intro inNothing,
-    tauto,
+    subst same,
+    simp,
   },
 end
 
@@ -62,17 +59,13 @@ begin
     tauto,
   },
   {
-    apply isClosedTableau.byRule,
-    intros β β_prop,
-    simp at β_prop,
-    subst β_prop,
-    apply isClosedTableau.byRule,
-    intros β β_prop,
-    simp at β_prop,
     simp,
+    intros β β_prop,
     subst β_prop,
-    apply isClosedTableau.byRule,
-    tauto, -- no mopre premises
+    simp at *,
+    intros β β_prop,
+    subst β_prop,
+    simp,
   },
 end
 
@@ -144,48 +137,33 @@ begin
     { finish, }
   },
   { -- show that it is closed
-    apply isClosedTableau.byRule,
+    simp,
     intros β β_prop,
     simp at β_prop,
-    simp,
     subst β_prop,
-
-    apply isClosedTableau.byRule,
     intros β β_prop_left_right,
-
     cases β_prop_left_right with β_prop β_prop,
     { subst β_prop,
-      apply isClosedTableau.byRule,
-      intros β β_prop,
-      simp at β_prop,
-      finish, },
+      simp,
+      apply isClosedTableau.byRule, -- why is this sill needed?
+      simp,
+    },
     { simp at *,
-      cases β_prop with β_prop in_empty,
-      subst β_prop,
-      apply isClosedTableau.byRule,
-      intros β β_prop,
-      simp at β_prop,
-
       subst β_prop,
       simp at *,
       apply isClosedTableau.byRule,
       intros β β_prop,
       simp at β_prop,
       subst β_prop,
-
-      apply isClosedTableau.byRule,
+      simp at *,
       intros β β_prop,
       simp at β_prop,
       subst β_prop,
       simp at *,
-
-      apply isClosedTableau.byRule,
       intros β β_prop,
       simp at β_prop,
-      finish,
-
-      -- in_empty
-      exact absurd in_empty (list.not_mem_nil β),
+      subst β_prop,
+      simp at *,
      },
   },
 end
