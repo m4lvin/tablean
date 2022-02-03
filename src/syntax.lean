@@ -4,6 +4,10 @@ import order.bounded_order
 import data.set.finite
 import data.finset.fold
 
+-- think about using α instead of char
+-- imports?
+-- use namespaces?
+
 /- Formulas -/
 @[derive decidable_eq]
 inductive formula : Type

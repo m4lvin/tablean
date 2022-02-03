@@ -19,6 +19,7 @@ def evaluate {W : Type} : kripkeModel W → W → formula → Prop
 @[simp]
 def evaluatePoint {W : Type} : (kripkeModel W × W) → formula → Prop
 | (M,w) ϕ := evaluate M w ϕ
+-- remove one of the un/curried functions here?
 
 def tautology     (φ : formula) := ∀ W (M : kripkeModel W) w, evaluatePoint (M, w) φ
 def contradiction (φ : formula) := ∀ W (M : kripkeModel W) w, ¬ evaluatePoint (M, w) φ

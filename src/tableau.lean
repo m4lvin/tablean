@@ -26,6 +26,14 @@ def formProjection : formula → option formula
 def projection : finset formula → finset formula :=
   finset.pimage (λ f, part.of_option (formProjection f))
 
+-- can I write comprehension for finset, accompanied by a proof that its finite?
+-- projection X = { f | □f ∈ X }
+-- like this:
+-- | X := { f | □f ∈ X }
+
+-- printing of formulas needs something has_repr (like Show in HS)
+#eval projection { ~p, □q }
+
 lemma proj { g: formula } { X : finset formula } :
   g ∈ projection X ↔ □g ∈ X :=
 begin
@@ -58,6 +66,7 @@ end
 open formula
 
 -- rules: given this set, apply rule to formula, resulting in these new sets
+-- rename candidates: "step" or "ruleApplication"
 inductive rule : finset formula → finset (finset formula) → Type
 -- closing rules:
 | bot { α     } ( h : ⊥ ∈ α )          : rule α ∅
@@ -71,13 +80,38 @@ inductive rule : finset formula → finset (finset formula) → Type
 -- the atomic rule:
 | atm { α f   } ( h : ~□f       ∈ α ) : rule α { projection α ∪ {~f} }
 
+-- these are actually maximal tableau!
 inductive tableau : finset formula → Type
 | byRule { α B } (_ : rule α B) (_ : Π β ∈ B, tableau β) : tableau α
 | isOpen { α   } : (¬ ∃ B (_ : rule α B), true) → tableau α
+  -- rename to "leaveOpen" or "stuck"
 
+-- change this!? and avoid subtype, and do conversion function
+-- inductive closedTableau : finset formula → Type
 inductive isClosedTableau : Π { α : finset formula }, tableau α -> Prop
 | byRule { α } { B } (r : rule α B) (prev : Π β ∈ B, tableau β) :
     (∀ β, Π H : β ∈ B, isClosedTableau (prev β H)) → isClosedTableau (tableau.byRule r prev)
+
+-- TODO
+-- @[simp]
+-- lemma closedTableaus :
+--   isClosedTableau (tableau.byRule _ children) ↔  ∀ t ∈ children , isClosedTableau t :=
+-- begin
+--   sorry,
+-- end
+
+-- TODO
+-- @[simp]
+-- lemma openTableaus :
+--   ¬ isClosedTableau (isOpen _):=
+-- begin
+--   sorry,
+-- end
+
+
+-- | byRule { α } { B } (r : rule α B) (prev : Π β ∈ B, tableau β) :
+--    (∀ β, Π H : β ∈ B, isClosedTableau (prev β H)) → isClosedTableau (tableau.byRule r prev)
+
 
 @[simp]
 def closedTableau ( α ) := subtype (@isClosedTableau α)
@@ -98,7 +132,7 @@ def inconsistent : finset formula → Prop
 def consistent : finset formula → Prop
 | X := ¬ inconsistent X
 
-
+-- avoid α and β for formula sets (follow Borzechowski and use X for set)
 open hasComplexity
 lemma rulesDecreaseComplexity { α : finset formula } { B : finset (finset formula) } (r : rule α B) :
   ∀ β ∈ B, complexityOf β < complexityOf α :=
@@ -141,11 +175,11 @@ begin
   },
 end
 
--- maybe this should be data and not Prop ?
-lemma existsTableauFor : ∀ N α, N = complexityOf α → ∃ _ : tableau α, true :=
+-- maybe this should be data and not Prop ? // → tableau α
+def existsTableauFor : ∀ N α, N = complexityOf α → ∃ _ : tableau α, true :=
 begin
   intro N,
-  apply nat.strong_induction_on N,
+  apply nat.strong_induction_on N, -- TODO: only works in Prop?
   intros n IH α nDef,
   have canApplyRule := em (¬ ∃ B (_ : rule α B), true),
   cases canApplyRule,
@@ -207,3 +241,8 @@ begin
     },
   }
 end
+
+-- try these:
+-- #print existsTableauFor
+-- reduce
+-- eval
