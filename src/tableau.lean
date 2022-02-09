@@ -14,25 +14,23 @@ def simpleForm : formula → Prop
 | ⊥       := true
 | (· _)   := true
 | ~(· _)  := true
-| (□ _)  := true
-| ~(□ _) := true
+| (□ _)   := true
+| ~(□ _)  := true
 | _       := false
 def simple : finset formula → Prop := λ X, ∀ P ∈ X, simpleForm P
 -- Let X_A := { R | [A]R ∈ X }.
 @[simp]
-def formProjection : formula → option formula
+def formProjection : formula → option formula -- TODO: change type to `pfun formula formula`?
 | (□f) := some f
-| _     := none
-def projection : finset formula → finset formula :=
-  finset.pimage (λ f, part.of_option (formProjection f))
+| _    := none
+def projection : finset formula → finset formula := finset.pimage (part.of_option ∘ formProjection)
 
--- can I write comprehension for finset, accompanied by a proof that its finite?
--- projection X = { f | □f ∈ X }
--- like this:
--- | X := { f | □f ∈ X }
+-- It would be nicer if we could write this as
+--   projection X = { f | □f ∈ X }
+-- but how can we use set comprehension to defined a finset?
+-- do we nee to accompany it by a proof that its finite?
 
--- printing of formulas needs something has_repr (like Show in HS)
-#eval projection { ~p, □q }
+#eval projection { ~p, □□q, □q }
 
 lemma proj { g: formula } { X : finset formula } :
   g ∈ projection X ↔ □g ∈ X :=
