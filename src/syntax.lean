@@ -36,6 +36,16 @@ infixl `⟷`:77        := λ ϕ ψ, (ϕ ↣ ψ) ⋀ (ψ ↣ ϕ)
 instance : has_bot formula := ⟨formula.bottom⟩
 instance : has_top formula := ⟨formula.neg formula.bottom⟩
 
+-- showing formulas as strings that are valid Lean code
+def formToString : formula → string
+| ⊥       := "⊥"
+| (· ch)  := repr ch
+| ~f      := "~" ++ formToString f
+| (f ⋀ g) := "(" ++ formToString f ++ " ⋀ " ++ formToString g ++ ")"
+| (□ f)   := "(□ "++ formToString f ++ ")"
+
+instance : has_repr formula := ⟨formToString⟩
+
 -- COMPLEXITY
 
 @[simp]
