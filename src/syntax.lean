@@ -3,6 +3,7 @@
 import order.bounded_order
 import data.set.finite
 import data.finset.fold
+import algebra.big_operators.basic
 
 -- think about using α instead of char
 -- imports?
@@ -57,17 +58,19 @@ def lengthOfFormula : formula → ℕ
 | (□ φ)  := 1 + lengthOfFormula φ
 
 def lengthOfSet : finset formula → ℕ
-| X := finset.fold (+) 0 lengthOfFormula X
+| X := X.sum lengthOfFormula
 
+@[simp]
 def complexityOfFormula : formula → ℕ
 | (⊥)     := 1
 | (· c)   := 1
-| (~ φ)   := 1 + lengthOfFormula φ
-| (φ ⋀ ψ) := 1 + max (lengthOfFormula φ) (lengthOfFormula ψ)
-| (□ φ)  := 1 + lengthOfFormula φ
+| (~ φ)   := 1 + complexityOfFormula φ
+| (φ ⋀ ψ) := 1 + max (complexityOfFormula φ) (complexityOfFormula ψ)
+| (□ φ)   := 1 + complexityOfFormula φ
 
+@[simp]
 def complexityOfSet : finset formula → ℕ
-| X := finset.fold (+) 0 complexityOfFormula X
+| X := X.sum complexityOfFormula
 
 class hasComplexity (α : Type) := (complexityOf : α → ℕ)
 open hasComplexity
