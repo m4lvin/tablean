@@ -68,9 +68,23 @@ def complexityOfFormula : formula → ℕ
 | (φ ⋀ ψ) := 1 + max (complexityOfFormula φ) (complexityOfFormula ψ)
 | (□ φ)   := 1 + complexityOfFormula φ
 
-@[simp]
 def complexityOfSet : finset formula → ℕ
 | X := X.sum complexityOfFormula
+
+@[simp]
+lemma complexityRemove {X : finset formula} {f : X} :
+  complexityOfSet (X \ {f}) = complexityOfSet X - complexityOfFormula f :=
+begin
+  sorry,
+end
+
+@[simp]
+lemma complexityAdd {X : finset formula} {f : formula} {h : f ∉ X} : -- actually, we might not have h
+  complexityOfSet (X ∪ {f}) = complexityOfSet X + complexityOfFormula f :=
+begin
+  sorry,
+end
+
 
 class hasComplexity (α : Type) := (complexityOf : α → ℕ)
 open hasComplexity

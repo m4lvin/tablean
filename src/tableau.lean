@@ -4,6 +4,7 @@ import syntax
 import semantics
 import data.finset.basic
 import data.finset.pimage
+import algebra.big_operators.order
 
 -- Definition 9
 -- TODO add programs here!
@@ -146,8 +147,29 @@ begin
   case rule.neg : {
     subst inB, unfold complexityOf,
     unfold complexityOfSet,
-    sorry, -- TODO
-
+    have foo : α.sum complexityOfFormula = (α \ {~~r_f} ∪ {r_f}).sum complexityOfFormula + 2, {
+      have claim : (α \ {~~r_f} ∪ {r_f}).sum complexityOfFormula = (α.sum complexityOfFormula) - complexityOfFormula (~~r_f) + complexityOfFormula (r_f), {
+        unfold complexityOfFormula,
+        unfold finset.sum,
+        unfold multiset.map,
+        unfold quot.lift_on,
+        simp at *,
+        dsimp at *,
+        unfold_coes,
+        simp at *,
+        dsimp at *,
+        hint,
+        sorry,
+      },
+      rw claim,
+      unfold complexityOfFormula,
+      set m : ℕ := α.sum complexityOfFormula,
+      set n : ℕ := complexityOfFormula r_f,
+      -- TODO: H : m = m - (1 + (1 + n)) + n + 2
+      sorry,
+    },
+    rw foo,
+    sorry,
   },
   case rule.con : {
     subst inB, unfold complexityOf, unfold complexityOfSet,
