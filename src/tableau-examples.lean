@@ -86,29 +86,29 @@ begin
   split,
   rotate,
   { -- con
-    apply tableau.byRule (rule.con (by {simp} : (r ⋀ ~□p) ∈ α )),
+    apply tableau.byRule (rule.con (by {simp only [eq_self_iff_true, or_false, and_self, finset.mem_insert, finset.mem_singleton]} : (r ⋀ ~□p) ∈ α )),
     intros branch branch_def,
-    simp at branch_def,
+    simp only [finset.union_insert, finset.mem_singleton] at branch_def,
     -- nCo
     apply tableau.byRule (rule.nCo (by {finish} : ~(r ⋀ (~(p ⋀ q).box)) ∈ branch)),
     subst branch_def,
-    dsimp at *,
+    dsimp only at *,
     intros b b_in,
-    simp at b_in,
+    simp only [finset.mem_insert, finset.mem_singleton] at b_in,
     change b = {r, ~□p, ~r} ∨
            b = {r, ~□p, ~~□(p⋀q)} at b_in,
     refine if h1 : b = {r, ~□p, ~r} then _ else if h2 : b = {r, ~□p, ~~□(p⋀q)} then _ else _,
     { rw h1, -- right branch
       let stuff : finset formula := { r, ~p.box, ~r},
       -- not:
-      apply tableau.byRule (rule.not (by {simp} : r ∈ stuff ∧ ~r ∈ stuff)),
+      apply tableau.byRule (rule.not (by {simp only [true_or, eq_self_iff_true, or_true, and_self, finset.mem_insert, finset.mem_singleton]} : r ∈ stuff ∧ ~r ∈ stuff)),
       exact emptyTableau,
     },
     { rw h2, --left branch
       -- neg:
-      apply tableau.byRule (rule.neg (by {simp} : ~~□(p ⋀ q) ∈ { r, ~□p, ~~□(p ⋀ q) })),
+      apply tableau.byRule (rule.neg (by {simp only [eq_self_iff_true, or_true, and_self, finset.mem_insert, finset.mem_singleton]} : ~~□(p ⋀ q) ∈ { r, ~□p, ~~□(p ⋀ q) })),
       intros child childDef,
-      simp [*] at *,
+      simp only [finset.mem_singleton] at *,
       subst childDef,
       -- change tableau ({r, ~□p, □(p ⋀ q)}), -- SLOW, why?
       -- atm:
@@ -134,7 +134,7 @@ begin
       simp,
       exact emptyTableau,
     },
-    { finish, }
+    { itauto, }
   },
   { -- show that it is closed
     simp,
