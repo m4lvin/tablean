@@ -131,6 +131,44 @@ def inconsistent : finset formula → Prop
 def consistent : finset formula → Prop
 | X := ¬ inconsistent X
 
+@[simp]
+lemma complexityAdd {X : finset formula} :
+  ∀ f {h : f ∉ X}, complexityOfSet (insert f X) = complexityOfSet X + complexityOfFormula f :=
+begin
+  apply finset.induction_on X,
+  {
+    unfold complexityOfSet,
+    simp,
+  },
+  {
+    intros g Y gNotInY IH,
+    unfold complexityOfSet at *,
+    intros f h,
+    finish,
+  },
+end
+
+@[simp]
+lemma complexityRemove {X : finset formula} :
+  ∀ f ∈ X, complexityOfSet (X \ {f}) = complexityOfSet X - complexityOfFormula f :=
+begin
+  intros f fInX,
+  have claim : complexityOfSet (insert f (X \ {f})) = complexityOfSet (X \ {f}) + complexityOfFormula f,
+  {
+    apply complexityAdd,
+    simp,
+  },
+  have anotherClaim : insert f (X \ {f}) = X, {
+    ext1,
+    simp only [finset.mem_sdiff, finset.mem_insert, finset.mem_singleton],
+    split,
+    finish,
+    tauto,
+  },
+  rw anotherClaim at claim,
+  finish,
+end
+
 -- avoid α and β for formula sets (follow Borzechowski and use X for set)
 open hasComplexity
 lemma rulesDecreaseComplexity { α : finset formula } { B : finset (finset formula) } (r : rule α B) :
