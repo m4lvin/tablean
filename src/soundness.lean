@@ -202,15 +202,15 @@ begin
     specialize all_pro_sat otherWorld.fst f,
     simp at all_pro_sat,
     rw or_imp_distrib at all_pro_sat,
-    cases all_pro_sat with all_pro_sat_l _,
+    cases all_pro_sat with _ all_pro_sat_right,
     rw ← proj at f_in_X,
-    specialize all_pro_sat_l f_in_X,
+    specialize all_pro_sat_right f_in_X,
     have sameWorld : otherWorld.snd = (collection otherWorld.fst).snd.snd, {
       rw (heq_iff_eq.mp (heq.symm is_rel)),
     },
     rw sameWorld,
     simp,
-    exact all_pro_sat_l,
+    exact all_pro_sat_right,
   },
 end
 
@@ -256,16 +256,16 @@ begin
       rw or_imp_distrib,
       split,
       {
+        intro g_is_notR,
+        rw g_is_notR,
+        exact v_sat_notr,
+      },
+      {
         intro boxg_in_X,
         rw proj at boxg_in_X,
         specialize w_sat_X (□g) boxg_in_X,
         unfold evaluate at w_sat_X,
         exact w_sat_X v w_rel_v,
-      },
-      {
-        intro g_is_notR,
-        rw g_is_notR,
-        exact v_sat_notr,
       },
     },
   },
@@ -301,7 +301,7 @@ begin
     -- it remains to show that the new big model satisfies X
     intros R f f_inpro_or_notr,
     cases R with R notrbox_in_X,
-    simp at *,
+    simp only [finset.mem_union, finset.mem_insert, finset.mem_singleton, subtype.coe_mk] at *,
     specialize this_pro_sat R notrbox_in_X,
     cases f_inpro_or_notr with f_inpro f_is_notboxR,
     { -- if f is in the projection
@@ -356,22 +356,21 @@ begin
       finish,
     },
     use (a \ {~~f} ∪ {f}),
-    simp,
+    simp only [true_and, eq_self_iff_true, sdiff_singleton_is_erase, multiset.mem_singleton, finset.mem_mk],
     unfold setSatisfiable,
     use W, use M, use w, -- is there something nicer?
-    simp at *,
-    -- apply w_sat_f,
     intro g,
+    simp only [ne.def, union_singleton_is_insert, finset.mem_insert, finset.mem_erase],
     rw or_imp_distrib,
     split,
     {
-      simp,
-      intros g_in_a g_neq_notnotf,
-      apply w_sat_a,
-      exact g_in_a,
+      intro g_is_f, rw g_is_f, apply w_sat_f,
     },
     {
-      intro g_is_f, rw g_is_f, apply w_sat_f,
+      rw and_imp,
+      intros g_neq_notnotf g_in_a,
+      apply w_sat_a,
+      exact g_in_a,
     },
   },
   case rule.con : a f g hyp {
@@ -380,7 +379,7 @@ begin
     simp,
     unfold setSatisfiable,
     use W, use M, use w,
-    simp,
+    simp only [and_imp, forall_eq_or_imp, sdiff_singleton_is_erase, ne.def, finset.union_insert, finset.mem_insert, finset.mem_erase],
     split,
     { -- f
       specialize w_sat_a (f⋀g) hyp,
@@ -389,14 +388,15 @@ begin
     },
     {
       intros h hhyp,
+      simp at hhyp,
       cases hhyp,
-      { -- h in a
-        exact w_sat_a h hhyp.left,
-      },
       { -- g
         specialize w_sat_a (f⋀g) hyp,
         unfold evaluate at *,
         rw hhyp, exact w_sat_a.right,
+      },
+      { -- h in a
+        exact w_sat_a h hhyp.right,
       },
     },
   },
@@ -420,13 +420,13 @@ begin
         intro psi_def,
         cases psi_def,
         {
-          cases psi_def with psi_in_a,
-          exact w_sat_a psi psi_in_a,
-        },
-        {
           rw psi_def,
           unfold evaluate,
           exact not_w_f,
+        },
+        {
+          cases psi_def with psi_in_a,
+          exact w_sat_a psi psi_def_right,
         },
       },
     },
@@ -443,13 +443,13 @@ begin
         intro psi_def,
         cases psi_def,
         {
-          cases psi_def with psi_in_a,
-          exact w_sat_a psi psi_in_a,
-        },
-        {
           rw psi_def,
           unfold evaluate,
           exact not_w_g,
+        },
+        {
+          cases psi_def with psi_in_a,
+          exact w_sat_a psi psi_def_right,
         },
       },
     },
@@ -468,18 +468,18 @@ begin
     unfold setSatisfiable,
     use W, use M, use v,
     intros phi phi_is_notf_or_boxphi_in_a,
-    simp at *,
-    cases phi_is_notf_or_boxphi_in_a with boxphi_in_a phi_is_notf,
+    simp only [union_singleton_is_insert, finset.mem_insert] at *,
+    cases phi_is_notf_or_boxphi_in_a with phi_is_notf boxphi_in_a,
+    {
+      rw phi_is_notf,
+      unfold evaluate,
+      exact v_not_sat_f,
+    },
     {
       rw proj at boxphi_in_a,
       specialize w_sat_a phi.box boxphi_in_a,
       unfold evaluate at w_sat_a,
       exact w_sat_a v w_rel_v,
-    },
-    {
-      rw phi_is_notf,
-      unfold evaluate,
-      exact v_not_sat_f,
     },
   },
 end

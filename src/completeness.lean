@@ -43,7 +43,7 @@ begin
     use W, use M, use w,
     intros phi phi_in_a,
     have b_is_af : b = insert f (a \ {~~f}), {
-      subst H, ext1, simp, tauto,
+      subst H, ext1, simp,
     },
     have phi_in_b_or_is_f : phi ∈ b ∨ phi = ~~f, {
       rw b_is_af,
@@ -73,7 +73,7 @@ begin
     intros phi phi_in_a,
     simp at b_def,
     have b_is_fga : b = insert f (insert g (a \ {f⋀g})), {
-      subst b_def, ext1, simp, tauto,
+      subst b_def, ext1, simp,
     },
     have phi_in_b_or_is_fandg : phi ∈ b ∨ phi = f⋀g, {
       rw b_is_fga,
