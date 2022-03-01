@@ -5,6 +5,7 @@ import semantics
 import data.finset.basic
 import data.finset.pimage
 import algebra.big_operators.order
+import tactic
 
 -- Definition 9
 -- TODO add programs here!
@@ -132,7 +133,31 @@ def consistent : finset formula → Prop
 | X := ¬ inconsistent X
 
 @[simp]
-lemma complexityAdd {X : finset formula} :
+lemma union_singleton_is_insert {X : finset formula} {f : formula} :
+  X ∪ {f} = insert f X :=
+begin
+  apply finset.induction_on X,
+  simp,
+  intros g Y gNotInY IH,
+  simp,
+  injections_and_clear,
+  ext1,
+  finish,
+end
+
+@[simp]
+lemma sdiff_singleton_is_erase {X : finset formula} {f : formula} :
+  X \ {f} = X.erase f :=
+begin
+  apply finset.induction_on X,
+  simp,
+  intros g Y gNotInY IH,
+  ext1,
+  finish,
+end
+
+@[simp]
+lemma complexityAdd (X : finset formula) :
   ∀ f {h : f ∉ X}, complexityOfSet (insert f X) = complexityOfSet X + complexityOfFormula f :=
 begin
   apply finset.induction_on X,
@@ -149,8 +174,8 @@ begin
 end
 
 @[simp]
-lemma complexityRemove {X : finset formula} :
-  ∀ f ∈ X, complexityOfSet (X \ {f}) = complexityOfSet X - complexityOfFormula f :=
+lemma complexityRemove (X : finset formula) :
+  ∀ f ∈ X, complexityOfSet (X.erase f) + complexityOfFormula f = complexityOfSet X :=
 begin
   intros f fInX,
   have claim : complexityOfSet (insert f (X \ {f})) = complexityOfSet (X \ {f}) + complexityOfFormula f,
@@ -169,6 +194,10 @@ begin
   finish,
 end
 
+
+lemma negnegInj : ∀ { f }, f ≠ ~~f
+| (neg t) h := negnegInj $ neg.inj h  -- thanks to Eric Rodriguez
+
 -- avoid α and β for formula sets (follow Borzechowski and use X for set)
 open hasComplexity
 lemma rulesDecreaseComplexity { α : finset formula } { B : finset (finset formula) } (r : rule α B) :
@@ -184,30 +213,31 @@ begin
   },
   case rule.neg : {
     subst inB, unfold complexityOf,
-    unfold complexityOfSet,
-    have foo : α.sum complexityOfFormula = (α \ {~~r_f} ∪ {r_f}).sum complexityOfFormula + 2, {
-      have claim : (α \ {~~r_f} ∪ {r_f}).sum complexityOfFormula = (α.sum complexityOfFormula) - complexityOfFormula (~~r_f) + complexityOfFormula (r_f), {
-        unfold complexityOfFormula,
-        unfold finset.sum,
-        unfold multiset.map,
-        unfold quot.lift_on,
-        simp at *,
-        dsimp at *,
-        unfold_coes,
-        simp at *,
-        dsimp at *,
-        hint,
-        sorry,
+    have claim := complexityRemove α (~~r_f) r_h,
+    simp at *,
+    have mycases : r_f ∈ α ∨ r_f ∉ α := em _,
+    cases mycases,
+    {
+      dsimp at *,
+      have otherClaim : insert r_f (α.erase (~~r_f)) = α.erase (~~r_f),
+      {
+        ext1,
+        simp,
+        intro a_is_rf,
+        subst a_is_rf,
+        split,
+        { apply negnegInj, },
+        { exact mycases, },
       },
-      rw claim,
-      unfold complexityOfFormula,
-      set m : ℕ := α.sum complexityOfFormula,
-      set n : ℕ := complexityOfFormula r_f,
-      -- TODO: H : m = m - (1 + (1 + n)) + n + 2
-      sorry,
+      rw otherClaim,
+      have remClaim := complexityRemove (α) r_f mycases,
+      linarith,
     },
-    rw foo,
-    sorry,
+    {
+      rw complexityAdd (α.erase (~~r_f)) r_f,
+      linarith,
+      finish,
+    },
   },
   case rule.con : {
     subst inB, unfold complexityOf, unfold complexityOfSet,
