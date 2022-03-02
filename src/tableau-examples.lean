@@ -21,10 +21,15 @@ begin
   {
     simp,
     intros β inB,
-    have same : β = {⊥}, { finish, },
-    subst same,
+    subst inB,
     simp,
   },
+end
+
+def emptyTableau : Π (β : finset formula), β ∈ ∅ → tableau β :=
+begin
+  intros beta b_in_empty,
+  exact absurd b_in_empty (finset.not_mem_empty beta),
 end
 
 -- an example:
@@ -41,7 +46,7 @@ begin
     simp,
     intros β β_prop,
     simp at β_prop,
-    rw β_prop,
+    subst β_prop,
     -- con:
     apply tableau.byRule,
     apply rule.con,
@@ -51,12 +56,12 @@ begin
     refl,
     intros β2 β2_prop,
     simp at β2_prop,
-    rw β2_prop,
+    subst β2_prop,
     -- closed:
     apply tableau.byRule,
     apply rule.not,
     repeat { finish, },
-    tauto,
+    exact emptyTableau,
   },
   {
     simp,
@@ -65,15 +70,9 @@ begin
     simp at *,
     intros β β_prop,
     subst β_prop,
-    simp,
+    -- GOAL: isClosedTableau (eq.rec (tableau.byRule (rule.not _) emptyTableau) _)
+    simp
   },
-end
-
-
-def emptyTableau : Π (β : finset formula), β ∈ ∅ → tableau β :=
-begin
-  intros beta b_in_empty,
-  exact absurd b_in_empty (finset.not_mem_empty beta),
 end
 
 
@@ -156,15 +155,18 @@ begin
       intros β β_prop,
       simp only [finset.mem_singleton] at β_prop,
       subst β_prop,
+      -- atm:
       simp only [closedTableauIffChildrenClosed, finset.mem_singleton] at *,
       intros β β_prop,
       simp only at β_prop,
       subst β_prop,
-      simp only [sdiff_singleton_is_erase, closedTableauIffChildrenClosed, finset.union_insert, union_singleton_is_insert, finset.mem_singleton] at *,
+      -- con:
+      apply isClosedTableau.byRule,
       intros β β_prop,
-      subst β_prop,
-      norm_cast at *,
-
+      -- GOAL: isClosedTableau (eq.rec (tableau.byRule (rule.not _) emptyTableau) _)
+      -- above we had the same goal, and it could be closed with simp, but not here:
+      --simp,
+      sorry,
      },
   },
 end
