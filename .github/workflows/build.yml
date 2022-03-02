@@ -21,7 +21,7 @@ jobs:
           curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- --default-toolchain none -y
           ~/.elan/bin/lean --version
           echo "$HOME/.elan/bin" >> $GITHUB_PATH
-          echo "short_lean_version=$(~/.elan/bin/lean --run scripts/lean_version.lean)" >> $GITHUB_ENV
+
       - name: install Python
         if: ${{ ! 0 }}
         uses: actions/setup-python@v1
@@ -35,18 +35,11 @@ jobs:
         run: leanpkg configure
 
       - name: get mathlib cache
-        run: leanproject get-mathlib-cache || true
-
-      - name: try to find olean cache
-        continue-on-error: true
-        run: ./scripts/fetch_olean_cache.sh
+        run: leanproject get-mathlib-cache
 
       - name: leanpkg build
         id: build
-        run: |
-          echo "::set-output name=started::true"
-          lean --json --make src | python scripts/detect_errors.py
-          lean --json --make src | python scripts/detect_errors.py
+        run: leanproject build
 
   stats:
     name: Stats
