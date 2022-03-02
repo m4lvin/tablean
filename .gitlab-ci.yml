@@ -1,6 +1,6 @@
 image:
   name: leanprovercommunity/lean
-  entrypoint: ["/bin/bash", "-c"]
+  entrypoint: [""]
 
 build:
   cache:
