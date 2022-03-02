@@ -1,0 +1,66 @@
+# based on https://github.com/leanprover-community/lean-liquid/blob/master/.github/workflows/build.yml
+
+on:
+  push:
+
+name: CI
+
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: ${{ env.GIT_HISTORY_DEPTH }}
+
+      - name: install elan
+        run: |
+          set -o pipefail
+          curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- --default-toolchain none -y
+          ~/.elan/bin/lean --version
+          echo "$HOME/.elan/bin" >> $GITHUB_PATH
+          echo "short_lean_version=$(~/.elan/bin/lean --run scripts/lean_version.lean)" >> $GITHUB_ENV
+      - name: install Python
+        if: ${{ ! 0 }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+
+      - name: install mathlibtools
+        run: python -m pip install --upgrade pip mathlibtools
+
+      - name: leanpkg configure
+        run: leanpkg configure
+
+      - name: get mathlib cache
+        run: leanproject get-mathlib-cache || true
+
+      - name: try to find olean cache
+        continue-on-error: true
+        run: ./scripts/fetch_olean_cache.sh
+
+      - name: leanpkg build
+        id: build
+        run: |
+          echo "::set-output name=started::true"
+          lean --json --make src | python scripts/detect_errors.py
+          lean --json --make src | python scripts/detect_errors.py
+
+  stats:
+    name: Stats
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: install ripgrep
+        run: sudo apt install -y ripgrep
+
+      - name: count lines in src
+        run: |
+          shopt -s globstar
+          wc -l src/**/*.lean
+      - name: count sorries
+        run: |
+          rg --count-matches sorry src | awk -F ':' 'BEGIN {sum = 0} {sum += $2} {print $2 " " $1} END {print sum " total"}'
