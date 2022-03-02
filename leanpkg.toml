@@ -1,8 +1,8 @@
 [package]
 name = "tablean"
 version = "0.1"
-lean_version = "leanprover-community/lean:3.38.0"
+lean_version = "leanprover-community/lean:3.40.0"
 path = "src"
 
 [dependencies]
-mathlib = {git = "https://github.com/leanprover-community/mathlib", rev = "201aeaa3fd98e7dd6945bf38236af4449be2275f"}
+mathlib = {git = "https://github.com/leanprover-community/mathlib", rev = "fefe359d48630c94826dfc387b17602518156a55"}

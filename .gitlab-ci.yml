@@ -1,0 +1,10 @@
+image: leanprovercommunity/lean
+
+build:
+  cache:
+    paths:
+      - _target/
+  script:
+    - leanproject --version
+    - leanproject get-mathlib-cache
+    - leanproject build
