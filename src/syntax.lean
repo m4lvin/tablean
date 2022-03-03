@@ -49,6 +49,7 @@ instance : has_repr formula := ⟨formToString⟩
 
 -- COMPLEXITY
 
+-- this should later be the measure from Lemma 2, page 20
 @[simp]
 def lengthOfFormula : formula → ℕ
 | (⊥)     := 1

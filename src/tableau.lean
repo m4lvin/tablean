@@ -157,30 +157,30 @@ begin
 end
 
 @[simp]
-lemma complexityAdd (X : finset formula) :
-  ∀ f {h : f ∉ X}, complexityOfSet (insert f X) = complexityOfSet X + complexityOfFormula f :=
+lemma lengthAdd {X : finset formula} :
+  ∀ {f} (h : f ∉ X), lengthOfSet (insert f X) = lengthOfSet X + lengthOfFormula f :=
 begin
   apply finset.induction_on X,
   {
-    unfold complexityOfSet,
+    unfold lengthOfSet,
     simp,
   },
   {
     intros g Y gNotInY IH,
-    unfold complexityOfSet at *,
+    unfold lengthOfSet at *,
     intros f h,
     finish,
   },
 end
 
 @[simp]
-lemma complexityRemove (X : finset formula) :
-  ∀ f ∈ X, complexityOfSet (X.erase f) + complexityOfFormula f = complexityOfSet X :=
+lemma lengthRemove (X : finset formula) :
+  ∀ f ∈ X, lengthOfSet (X.erase f) + lengthOfFormula f = lengthOfSet X :=
 begin
   intros f fInX,
-  have claim : complexityOfSet (insert f (X \ {f})) = complexityOfSet (X \ {f}) + complexityOfFormula f,
+  have claim : lengthOfSet (insert f (X \ {f})) = lengthOfSet (X \ {f}) + lengthOfFormula f,
   {
-    apply complexityAdd,
+    apply lengthAdd,
     simp,
   },
   have anotherClaim : insert f (X \ {f}) = X, {
@@ -194,14 +194,23 @@ begin
   finish,
 end
 
+@[simp]
+lemma lengthRemoveMin (X : finset formula) :
+  ∀ f ∈ X, lengthOfSet (X.erase f) = lengthOfSet X - lengthOfFormula f:=
+begin
+  intros f fInX,
+  have claim := lengthRemove X f fInX,
+  dsimp at *,
+  omega,
+end
 
 lemma negnegInj : ∀ { f }, f ≠ ~~f
 | (neg t) h := negnegInj $ neg.inj h  -- thanks to Eric Rodriguez
 
 -- avoid α and β for formula sets (follow Borzechowski and use X for set)
 open hasComplexity
-lemma rulesDecreaseComplexity { α : finset formula } { B : finset (finset formula) } (r : rule α B) :
-  ∀ β ∈ B, complexityOf β < complexityOf α :=
+lemma rulesDecreaseLength { α : finset formula } { B : finset (finset formula) } (r : rule α B) :
+  ∀ β ∈ B, lengthOfSet β < lengthOfSet α :=
 begin
   cases r,
   all_goals { intros β inB, simp at *, },
@@ -212,16 +221,14 @@ begin
     cases inB, -- no premises
   },
   case rule.neg : {
-    subst inB, unfold complexityOf,
-    have claim := complexityRemove α (~~r_f) r_h,
+    subst inB,
+    have claim := lengthRemove α (~~r_f) r_h,
     simp at *,
     have mycases : r_f ∈ α ∨ r_f ∉ α := em _,
     cases mycases,
-    {
-      dsimp at *,
+    { dsimp at *,
       have otherClaim : insert r_f (α.erase (~~r_f)) = α.erase (~~r_f),
-      {
-        ext1,
+      { ext1,
         simp,
         intro a_is_rf,
         subst a_is_rf,
@@ -230,25 +237,39 @@ begin
         { exact mycases, },
       },
       rw otherClaim,
-      have remClaim := complexityRemove (α) r_f mycases,
-      linarith,
+      have remClaim := lengthRemove α r_f mycases,
+      sorry -- linarith, -- no longer works :-(
     },
-    {
-      rw complexityAdd (α.erase (~~r_f)) r_f,
+    { rw lengthAdd,
       linarith,
       finish,
     },
   },
   case rule.con : {
-    subst inB, unfold complexityOf, unfold complexityOfSet,
-    sorry, -- TODO
+    subst inB,
+    have r_f_in_a_or_not := em (r_f ∈ α),
+    have r_g_in_a_or_not := em (r_g ∈ α),
+    cases r_f_in_a_or_not,
+    all_goals { cases r_g_in_a_or_not, },
+    { sorry,
+    },
+    { sorry,
+    },
+    { sorry,
+    },
+    { rw lengthAdd ( by { sorry, } : r_f ∉ insert r_g (α.erase (r_f⋀r_g)) ),
+      rw lengthAdd ( by {sorry} : r_g ∉ α.erase (r_f⋀r_g) ),
+      rw ← lengthRemove α (r_f⋀r_g) r_h,
+      ring_nf,
+      apply nat.add_lt_add_left,
+      unfold lengthOfFormula,
+      linarith,
+    },
   },
   case rule.nCo : {
     cases inB, -- splitting rule!
     all_goals {
       subst inB,
-      unfold complexityOf,
-      unfold complexityOfSet,
     },
     { -- f
       sorry, -- TODO
@@ -258,7 +279,7 @@ begin
     },
   },
   case rule.atm : {
-    subst inB, unfold complexityOf, unfold complexityOfSet,
+    subst inB,
     sorry, -- TODO
   },
 end
