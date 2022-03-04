@@ -132,6 +132,7 @@ def inconsistent : finset formula → Prop
 def consistent : finset formula → Prop
 | X := ¬ inconsistent X
 
+-- replace this with finset.insert_eq  ??
 @[simp]
 lemma union_singleton_is_insert {X : finset formula} {f : formula} :
   X ∪ {f} = insert f X :=
@@ -173,6 +174,16 @@ begin
   },
 end
 
+
+lemma lemmaVanEmma {X: finset formula} :
+  ∀ {f},lengthOfSet (insert f X) ≤ lengthOfSet X + lengthOfFormula f :=
+begin
+intro f,
+cases (em (f ∈ X)),
+{ rw finset.insert_eq_of_mem h, simp, },
+{ rw lengthAdd h, },
+end
+
 @[simp]
 lemma lengthRemove (X : finset formula) :
   ∀ f ∈ X, lengthOfSet (X.erase f) + lengthOfFormula f = lengthOfSet X :=
@@ -208,7 +219,9 @@ lemma negnegInj : ∀ { f }, f ≠ ~~f
 | (neg t) h := negnegInj $ neg.inj h  -- thanks to Eric Rodriguez
 
 -- avoid α and β for formula sets (follow Borzechowski and use X for set)
-open hasComplexity
+open hasComplexity -- remove?
+open hasLength
+
 lemma rulesDecreaseLength { α : finset formula } { B : finset (finset formula) } (r : rule α B) :
   ∀ β ∈ B, lengthOfSet β < lengthOfSet α :=
 begin
@@ -222,48 +235,24 @@ begin
   },
   case rule.neg : {
     subst inB,
-    have claim := lengthRemove α (~~r_f) r_h,
-    simp at *,
-    have mycases : r_f ∈ α ∨ r_f ∉ α := em _,
-    cases mycases,
-    { dsimp at *,
-      have otherClaim : insert r_f (α.erase (~~r_f)) = α.erase (~~r_f),
-      { ext1,
-        simp,
-        intro a_is_rf,
-        subst a_is_rf,
-        split,
-        { apply negnegInj, },
-        { exact mycases, },
-      },
-      rw otherClaim,
-      have remClaim := lengthRemove α r_f mycases,
-      sorry -- linarith, -- no longer works :-(
-    },
-    { rw lengthAdd,
-      linarith,
-      finish,
+    { calc lengthOfSet (insert r_f (α.erase (~~r_f)))
+         ≤ lengthOfSet (α.erase (~~r_f)) + lengthOf (r_f) : by { apply lemmaVanEmma, }
+     ... < lengthOfSet (α.erase (~~r_f)) + lengthOf (r_f) + 2 : by { simp, }
+     ... = lengthOfSet (α.erase (~~r_f)) + lengthOf (~~r_f) : by { unfold lengthOf, unfold lengthOfFormula, ring, }
+     ... = lengthOfSet α : lengthRemove α (~~r_f) r_h,
     },
   },
   case rule.con : {
     subst inB,
-    have r_f_in_a_or_not := em (r_f ∈ α),
-    have r_g_in_a_or_not := em (r_g ∈ α),
-    cases r_f_in_a_or_not,
-    all_goals { cases r_g_in_a_or_not, },
-    { sorry,
-    },
-    { sorry,
-    },
-    { sorry,
-    },
-    { rw lengthAdd ( by { sorry, } : r_f ∉ insert r_g (α.erase (r_f⋀r_g)) ),
-      rw lengthAdd ( by {sorry} : r_g ∉ α.erase (r_f⋀r_g) ),
-      rw ← lengthRemove α (r_f⋀r_g) r_h,
-      ring_nf,
-      apply nat.add_lt_add_left,
-      unfold lengthOfFormula,
-      linarith,
+    apply gt.lt, -- TODO remove this and turn around calc proof
+    { calc lengthOfSet α
+         = lengthOf (α.erase (r_f⋀r_g)) + lengthOf (r_f⋀r_g) : (lengthRemove α (r_f⋀r_g) r_h).symm
+     ... = lengthOf (α.erase (r_f⋀r_g)) + lengthOf r_f + lengthOf r_g + 1 :
+           by { unfold lengthOf, unfold lengthOfFormula, ring, }
+     ... > lengthOf (α.erase (r_f⋀r_g)) + lengthOf r_f + lengthOf r_g : by { unfold lengthOf, simp, }
+     ... = lengthOf (α.erase (r_f⋀r_g)) + lengthOf r_g + lengthOf r_f : by { ring, }
+     ... ≥ lengthOf (insert r_g (α.erase (r_f⋀r_g))) + lengthOf r_f : by { simp, apply lemmaVanEmma, }
+     ... ≥ lengthOf (insert r_f (insert r_g (α.erase (r_f⋀r_g)))) : by { simp, apply lemmaVanEmma, },
     },
   },
   case rule.nCo : {
@@ -272,20 +261,49 @@ begin
       subst inB,
     },
     { -- f
-      sorry, -- TODO
+    calc lengthOfSet (insert (~r_f) (α.erase (~(r_f⋀r_g))))
+         ≤ lengthOfSet (α.erase (~(r_f⋀r_g))) + lengthOf (~r_f) : lemmaVanEmma
+     ... ≤ lengthOfSet (α.erase (~(r_f⋀r_g))) + lengthOf (~r_f) + lengthOf r_g : by { simp, }
+     ... < lengthOfSet (α.erase (~(r_f⋀r_g))) + 1 + 1 + lengthOf r_f + lengthOf r_g :
+           by { unfold lengthOf, unfold lengthOfFormula, ring_nf, simp, }
+     ... = lengthOfSet (α.erase (~(r_f⋀r_g))) + lengthOf (~(r_f⋀r_g)) : by { unfold lengthOf, unfold lengthOfFormula, ring, }
+     ... = lengthOfSet α : lengthRemove α (~(r_f⋀r_g)) r_h,
     },
     { -- g
-      sorry,
+    calc lengthOfSet (insert (~r_g) (α.erase (~(r_f⋀r_g))))
+         ≤ lengthOfSet (α.erase (~(r_f⋀r_g))) + lengthOf (~r_g) : lemmaVanEmma
+     ... ≤ lengthOfSet (α.erase (~(r_f⋀r_g))) + lengthOf (~r_g) + lengthOf r_f : by { simp, }
+     ... < lengthOfSet (α.erase (~(r_f⋀r_g))) + 1 + 1 + lengthOf r_f + lengthOf r_g :
+           by { unfold lengthOf, unfold lengthOfFormula, ring_nf, simp, }
+     ... = lengthOfSet (α.erase (~(r_f⋀r_g))) + lengthOf (~(r_f⋀r_g)) : by { unfold lengthOf, unfold lengthOfFormula, ring, }
+     ... = lengthOfSet α : lengthRemove α (~(r_f⋀r_g)) r_h,
     },
   },
   case rule.atm : {
     subst inB,
-    sorry, -- TODO
+    have claim : ∀ X, lengthOfSet (projection X) ≤ lengthOfSet X, {
+      unfold projection,
+      unfold finset.pimage,
+      unfold lengthOfSet,
+      sorry,
+    },
+    have otherClaim : projection α = projection (α.erase (~□r_f)), {
+      sorry,
+    },
+    { calc lengthOfSet (insert (~r_f) (projection α))
+         ≤ lengthOfSet (projection α) + lengthOf (~r_f) : lemmaVanEmma
+     ... = lengthOfSet (projection α) + 1 + lengthOf r_f : by { unfold lengthOf, unfold lengthOfFormula, ring, }
+     ... < lengthOfSet (projection α) + 1 + 1 + lengthOf r_f : by { simp, }
+     ... = lengthOfSet (projection α) + lengthOf (~□r_f) : by { unfold lengthOf, unfold lengthOfFormula, ring, }
+     ... = lengthOfSet (projection (α.erase (~□r_f))) + lengthOf (~□r_f) : by { rw otherClaim, }
+     ... ≤ lengthOfSet (α.erase (~□r_f)) + lengthOf (~□r_f) : by { simp, apply claim, }
+     ... = lengthOfSet α : lengthRemove α (~□r_f) r_h,
+    }
   },
 end
 
 -- maybe this should be data and not Prop ? // → tableau α
-def existsTableauFor : ∀ N α, N = complexityOf α → ∃ _ : tableau α, true :=
+def existsTableauFor : ∀ N α, N = lengthOf α → ∃ _ : tableau α, true :=
 begin
   intro N,
   apply nat.strong_induction_on N, -- TODO: only works in Prop?
@@ -311,9 +329,9 @@ begin
     case rule.neg : _ f h {
       have t := (tableau.byRule (rule.neg h)) _, use t,
       intros beta beta_def,
-      have rDec := rulesDecreaseComplexity (rule.neg h) beta beta_def,
+      have rDec := rulesDecreaseLength (rule.neg h) beta beta_def,
       subst nDef,
-      specialize IH (complexityOf beta) rDec beta,
+      specialize IH (lengthOf beta) rDec beta,
       simp at IH,
       choose t _true using IH,
       use t,
@@ -321,9 +339,9 @@ begin
     case rule.con : _ f g h {
       have t := tableau.byRule (rule.con h) _, use t,
       intros beta beta_def,
-      have rDec := rulesDecreaseComplexity (rule.con h) beta beta_def,
+      have rDec := rulesDecreaseLength (rule.con h) beta beta_def,
       subst nDef,
-      specialize IH (complexityOf beta) rDec beta,
+      specialize IH (lengthOf beta) rDec beta,
       simp at IH,
       choose t _true using IH,
       use t,
@@ -331,9 +349,9 @@ begin
     case rule.nCo : _ f g h {
       have t := tableau.byRule (rule.nCo h) _, use t,
       intros beta beta_def,
-      have rDec := rulesDecreaseComplexity (rule.nCo h) beta beta_def,
+      have rDec := rulesDecreaseLength (rule.nCo h) beta beta_def,
       subst nDef,
-      specialize IH (complexityOf beta) rDec beta,
+      specialize IH (lengthOf beta) rDec beta,
       simp at IH,
       choose t _true using IH,
       use t,
@@ -341,9 +359,9 @@ begin
     case rule.atm : _ _ h {
       have t := tableau.byRule (rule.atm h) _, use t,
       intros beta beta_def,
-      have rDec := rulesDecreaseComplexity (rule.atm h) beta beta_def,
+      have rDec := rulesDecreaseLength (rule.atm h) beta beta_def,
       subst nDef,
-      specialize IH (complexityOf beta) rDec beta,
+      specialize IH (lengthOf beta) rDec beta,
       simp at IH,
       choose t _true using IH,
       use t,

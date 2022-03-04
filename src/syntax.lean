@@ -61,6 +61,11 @@ def lengthOfFormula : formula → ℕ
 def lengthOfSet : finset formula → ℕ
 | X := X.sum lengthOfFormula
 
+class hasLength (α : Type) := (lengthOf : α → ℕ)
+open hasLength
+instance formula_hasLength : hasLength formula := hasLength.mk lengthOfFormula
+instance setFormula_hasLength : hasLength (finset formula) := hasLength.mk lengthOfSet
+
 @[simp]
 def complexityOfFormula : formula → ℕ
 | (⊥)     := 1
