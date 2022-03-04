@@ -50,6 +50,14 @@ begin
   },
 end
 
+-- TODO: this is unused?
+lemma proj_singleton (g : formula) :
+  projection { g } = ∅  ∨  projection { g } = (formProjection g).to_finset :=
+begin
+  cases g,
+  all_goals { simp, finish, },
+end
+
 -- -- IDEA: can we have a type were all its instances are tableau according to rules?
 -- -- (note that correct does not mean closed!!)
 -- from general to more demanding, which of these should the tableau data type represent?
@@ -78,7 +86,7 @@ inductive rule : finset formula → finset (finset formula) → Type
 -- Note: any tableau is maximal.
 inductive tableau : finset formula → Type
 | byRule { α B } (_ : rule α B) (_ : Π β ∈ B, tableau β) : tableau α
-| stuck { α   } : (¬ ∃ B (_ : rule α B), true) → tableau α
+| stuck { α } : (¬ ∃ B (_ : rule α B), true) → tableau α
 
 -- approaches how to represent closed tableau:
 -- - inductive Prop and then subtype <<<<< currently using this.
@@ -215,8 +223,14 @@ begin
   omega,
 end
 
-lemma negnegInj : ∀ { f }, f ≠ ~~f
-| (neg t) h := negnegInj $ neg.inj h  -- thanks to Eric Rodriguez
+lemma sum_union_le { T } [decidable_eq T] : ∀ { X Y : finset T } { F : T → ℕ }, (X ∪ Y).sum F ≤ X.sum F + Y.sum F :=
+begin
+  intros X Y F,
+  { calc (X ∪ Y).sum F
+       ≤ (X ∪ Y).sum F + (X ∩ Y).sum F : by { simp, }
+   ... = X.sum F + Y.sum F : finset.sum_union_inter,
+  },
+end
 
 -- avoid α and β for formula sets (follow Borzechowski and use X for set)
 open hasComplexity -- remove?
@@ -263,7 +277,6 @@ begin
     { -- f
     calc lengthOfSet (insert (~r_f) (α.erase (~(r_f⋀r_g))))
          ≤ lengthOfSet (α.erase (~(r_f⋀r_g))) + lengthOf (~r_f) : lemmaVanEmma
-     ... ≤ lengthOfSet (α.erase (~(r_f⋀r_g))) + lengthOf (~r_f) + lengthOf r_g : by { simp, }
      ... < lengthOfSet (α.erase (~(r_f⋀r_g))) + 1 + 1 + lengthOf r_f + lengthOf r_g :
            by { unfold lengthOf, unfold lengthOfFormula, ring_nf, simp, }
      ... = lengthOfSet (α.erase (~(r_f⋀r_g))) + lengthOf (~(r_f⋀r_g)) : by { unfold lengthOf, unfold lengthOfFormula, ring, }
@@ -272,7 +285,6 @@ begin
     { -- g
     calc lengthOfSet (insert (~r_g) (α.erase (~(r_f⋀r_g))))
          ≤ lengthOfSet (α.erase (~(r_f⋀r_g))) + lengthOf (~r_g) : lemmaVanEmma
-     ... ≤ lengthOfSet (α.erase (~(r_f⋀r_g))) + lengthOf (~r_g) + lengthOf r_f : by { simp, }
      ... < lengthOfSet (α.erase (~(r_f⋀r_g))) + 1 + 1 + lengthOf r_f + lengthOf r_g :
            by { unfold lengthOf, unfold lengthOfFormula, ring_nf, simp, }
      ... = lengthOfSet (α.erase (~(r_f⋀r_g))) + lengthOf (~(r_f⋀r_g)) : by { unfold lengthOf, unfold lengthOfFormula, ring, }
@@ -281,14 +293,55 @@ begin
   },
   case rule.atm : {
     subst inB,
-    have claim : ∀ X, lengthOfSet (projection X) ≤ lengthOfSet X, {
+    -- TODO: move some of these to top level lemmas
+    have proj_form_lt : ∀ f g, some g = formProjection f → lengthOfFormula g < lengthOfFormula f, {
+      intros f g g_is_fP_f, cases f, all_goals { finish, },
+    },
+    have proj_claim : ∀ f, (projection {f}).sum lengthOfFormula ≤ lengthOfFormula f, {
+      intro f,
+      cases f,
+      { omega, },
+      { exact dec_trivial, },
+      { exact dec_trivial, },
+      { exact dec_trivial, },
+      { have subsubClaim : projection {□f} = {f}, {
+          ext1, rw proj, simp,
+        },
+        rw subsubClaim,
+        unfold lengthOfFormula, simp,
+      },
+    },
+    have lengthSingleton : ∀ f, lengthOfFormula f = lengthOfSet { f }, {
+      intro f, unfold lengthOfSet, simp,
+    },
+    have insert_comm_proj : ∀ X f, projection (insert f X) = (projection {f}) ∪ (projection X), {
+      intros X f,
       unfold projection,
-      unfold finset.pimage,
-      unfold lengthOfSet,
-      sorry,
+      ext1 g,
+      simp,
+      split, all_goals { finish, },
+    },
+    have claim : ∀ X, lengthOfSet (projection X) ≤ lengthOfSet X, {
+      intro X,
+      apply finset.induction_on X,
+      { unfold lengthOfSet, simp, intros f f_in_empty, cases f_in_empty, },
+      { simp, intros f S f_not_in_S IH,
+        unfold lengthOfSet,
+        rw finset.sum_insert f_not_in_S,
+        simp,
+        { calc (projection (insert f S)).sum lengthOfFormula
+             = (projection (insert f S)).sum lengthOfFormula : refl _
+         ... = (projection {f} ∪ projection S).sum lengthOfFormula : by { rw insert_comm_proj S f, }
+         ... ≤ (projection {f}).sum lengthOfFormula + (projection S).sum lengthOfFormula : by { apply sum_union_le, }
+         ... ≤ lengthOfFormula f + (projection S).sum lengthOfFormula : by { simp, apply proj_claim, }
+         ... ≤ lengthOfFormula f + S.sum lengthOfFormula : by { simp, apply IH, },
+        },
+      },
     },
     have otherClaim : projection α = projection (α.erase (~□r_f)), {
-      sorry,
+      ext1 phi,
+      rw proj, rw proj,
+      simp,
     },
     { calc lengthOfSet (insert (~r_f) (projection α))
          ≤ lengthOfSet (projection α) + lengthOf (~r_f) : lemmaVanEmma
