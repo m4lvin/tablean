@@ -4,7 +4,7 @@ import semantics
 open formula
 
 -- Definition 18, page 31
-def saturated : set formula → Prop
+def saturated : finset formula → Prop
 | X := ∀ P Q : formula,
   ( ~~P ∈ X → P ∈ X ) ∧
   ( P⋏Q ∈ X → P ∈ X ∧ Q ∈ X ) ∧
@@ -14,9 +14,9 @@ def saturated : set formula → Prop
 -- Definition 19, page 31
 -- TODO: change [] to [A] later
 @[simp]
-def modelGraph ( Worlds : set (set formula) ) :=
+def modelGraph ( Worlds : finset (finset formula) ) :=
   let
-    W := subtype Worlds,
+    W := subtype (λ x, x ∈ Worlds),
     i   := ∀ X : W, saturated X.val  ∧  ⊥ ∉ X.val  ∧  (∀ P, P ∈ X.val  →  ~P ∉ X.val),
     ii  := λ M : kripkeModel W, (∀ (X : W) pp, ((·pp) ∈ X.val ↔ M.val X pp)),
            -- Note: Borzechowski only has → in ii. We follow BRV, Def 4.18 and 4.84.
@@ -25,7 +25,7 @@ def modelGraph ( Worlds : set (set formula) ) :=
   in subtype ( λ M : kripkeModel W , i ∧ ii M ∧ iii M ∧ iv M )
 
 -- Lemma 9, page 32
-lemma truthLemma { Worlds : set (set formula) } (MG : modelGraph Worlds) :
+lemma truthLemma { Worlds : finset (finset formula) } (MG : modelGraph Worlds) :
   ∀ X : Worlds, ∀ P, P ∈ X.val → evaluate (MG.val,X) P :=
 begin
   intros X P,
