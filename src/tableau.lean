@@ -7,6 +7,8 @@ import data.finset.pimage
 import algebra.big_operators.order
 import tactic
 
+open formula
+
 -- Definition 9
 -- TODO add programs here!
 -- A set X is closed  iff  0 ∈ X or X contains a formula and its negation.
@@ -27,7 +29,7 @@ def formProjection : formula → option formula
 | _    := none
 def projection : finset formula → finset formula := finset.pimage (part.of_option ∘ formProjection)
 
-#eval projection { ~p, □□q, □q }
+-- #eval projection { ~p, □□q, □q }
 
 lemma proj { g: formula } { X : finset formula } :
   g ∈ projection X ↔ □g ∈ X :=
@@ -50,14 +52,6 @@ begin
   },
 end
 
--- TODO: this is unused?
-lemma proj_singleton (g : formula) :
-  projection { g } = ∅  ∨  projection { g } = (formProjection g).to_finset :=
-begin
-  cases g,
-  all_goals { simp, finish, },
-end
-
 -- -- IDEA: can we have a type were all its instances are tableau according to rules?
 -- -- (note that correct does not mean closed!!)
 -- from general to more demanding, which of these should the tableau data type represent?
@@ -66,35 +60,33 @@ end
 -- - maximal tableau <<<<<<<<<<<<<<<<<<<<< new definition which we use now
 -- - maximal and closed tableau <<<<<<< old definition! was too strict
 
-open formula
-
 -- rules: given this set, apply rule to formula, resulting in these new sets
 -- rename candidates: "step" or "ruleApplication"
 inductive rule : finset formula → finset (finset formula) → Type
 -- closing rules:
-| bot { α     } ( h : ⊥ ∈ α )          : rule α ∅
-| not { α f   } ( h : f ∈ α ∧ ~f ∈ α ) : rule α ∅
+| bot { X     } ( h : ⊥ ∈ X )          : rule X ∅
+| not { X ϕ   } ( h : ϕ ∈ X ∧ ~ϕ ∈ X ) : rule X ∅
 -- simple rules:
-| neg { α f   } ( h : ~~f        ∈ α ) : rule α { (α \ {~~f}) ∪ { f }    }
-| con { α f g } ( h : f ⋀ g      ∈ α ) : rule α { (α \ {f ⋀ g}) ∪ { f, g } }
+| neg { X ϕ   } ( h : ~~ϕ        ∈ X ) : rule X { (X \ {~~ϕ}) ∪ { ϕ }    }
+| con { X ϕ ψ } ( h : ϕ ⋏ ψ      ∈ X ) : rule X { (X \ {ϕ ⋏ ψ}) ∪ { ϕ, ψ } }
 -- splitting rule:
-| nCo { α f g } ( h : ~(f ⋀ g)   ∈ α ) : rule α { α \ { ~ (f ⋀ g) } ∪ {~f}
-                                                , α \ { ~ (f ⋀ g) } ∪ {~g} }
+| nCo { X ϕ ψ } ( h : ~(ϕ ⋏ ψ)   ∈ X ) : rule X { X \ { ~ (ϕ ⋏ ψ) } ∪ {~ϕ}
+                                                , X \ { ~ (ϕ ⋏ ψ) } ∪ {~ψ} }
 -- the atomic rule:
-| atm { α f   } ( h : ~□f       ∈ α ) : rule α { projection α ∪ {~f} }
+| atm { X ϕ   } ( h : ~□ϕ       ∈ X ) : rule X { projection X ∪ {~ϕ} }
 
 -- Note: any tableau is maximal.
 inductive tableau : finset formula → Type
-| byRule { α B } (_ : rule α B) (_ : Π β ∈ B, tableau β) : tableau α
-| stuck { α } : (¬ ∃ B (_ : rule α B), true) → tableau α
+| byRule { X B } (_ : rule X B) (_ : Π Y ∈ B, tableau Y) : tableau X
+| stuck { X } : (¬ ∃ B (_ : rule X B), true) → tableau X
 
 -- approaches how to represent closed tableau:
 -- - inductive Prop and then subtype <<<<< currently using this.
 -- - inductive Type, then write conversion functions?
 --   inductive closedTableau : finset formula → Type -- might not be possible to do ∀ α :-(
-inductive isClosedTableau : Π { α : finset formula }, tableau α -> Prop
-| byRule { α } { B } (r : rule α B) (prev : Π β ∈ B, tableau β) :
-    (∀ β, Π H : β ∈ B, isClosedTableau (prev β H)) → isClosedTableau (tableau.byRule r prev)
+inductive isClosedTableau : Π { X : finset formula }, tableau X -> Prop
+| byRule { X } { B } (r : rule X B) (prev : Π Y ∈ B, tableau Y) :
+    (∀ Y, Π H : Y ∈ B, isClosedTableau (prev Y H)) → isClosedTableau (tableau.byRule r prev)
 
 @[simp]
 lemma closedTableauIffChildrenClosed { X B r children }:
@@ -119,17 +111,16 @@ begin
   cases h,
 end
 
+@[simp]
+def closedTableau ( X ) := subtype (@isClosedTableau X)
 
 @[simp]
-def closedTableau ( α ) := subtype (@isClosedTableau α)
-
-@[simp]
-def openTableau ( α ) := subtype (λ t, not (@isClosedTableau α t))
+def openTableau ( X ) := subtype (λ t, not (@isClosedTableau X t))
 
 -- is this useful/needed?
 @[simp]
-def complexityOfTableau : (Σ (α : finset formula) , tableau α) → ℕ
-| (⟨α,_⟩) := complexityOfSet α
+def complexityOfTableau : (Σ (X : finset formula) , tableau X) → ℕ
+| (⟨X,_⟩) := complexityOfSet X
 
 inductive provable : formula → Prop
 | byTableau {φ : formula} : closedTableau { ~ φ } → provable φ
@@ -140,23 +131,17 @@ def inconsistent : finset formula → Prop
 def consistent : finset formula → Prop
 | X := ¬ inconsistent X
 
--- replace this with finset.insert_eq  ??
 @[simp]
-lemma union_singleton_is_insert {X : finset formula} {f : formula} :
-  X ∪ {f} = insert f X :=
+lemma union_singleton_is_insert {X : finset formula} {ϕ: formula} :
+  X ∪ {ϕ} = insert ϕ X :=
 begin
-  apply finset.induction_on X,
-  simp,
-  intros g Y gNotInY IH,
-  simp,
-  injections_and_clear,
-  ext1,
+  have fo := finset.insert_eq ϕ X,
   finish,
 end
 
 @[simp]
-lemma sdiff_singleton_is_erase {X : finset formula} {f : formula} :
-  X \ {f} = X.erase f :=
+lemma sdiff_singleton_is_erase {X : finset formula} {ϕ: formula} :
+  X \ {ϕ} = X.erase ϕ :=
 begin
   apply finset.induction_on X,
   simp,
@@ -167,7 +152,7 @@ end
 
 @[simp]
 lemma lengthAdd {X : finset formula} :
-  ∀ {f} (h : f ∉ X), lengthOfSet (insert f X) = lengthOfSet X + lengthOfFormula f :=
+  ∀ {ϕ} (h : ϕ ∉ X), lengthOfSet (insert ϕ X) = lengthOfSet X + lengthOfFormula ϕ :=
 begin
   apply finset.induction_on X,
   {
@@ -175,34 +160,32 @@ begin
     simp,
   },
   {
-    intros g Y gNotInY IH,
+    intros ψ Y psiNotInY IH,
     unfold lengthOfSet at *,
-    intros f h,
+    intros ϕ h,
     finish,
   },
 end
 
-
-lemma lemmaVanEmma {X: finset formula} :
-  ∀ {f},lengthOfSet (insert f X) ≤ lengthOfSet X + lengthOfFormula f :=
+lemma lengthOf_insert_leq_plus {X: finset formula} {ϕ : formula} :
+  lengthOfSet (insert ϕ X) ≤ lengthOfSet X + lengthOfFormula ϕ :=
 begin
-intro f,
-cases (em (f ∈ X)),
-{ rw finset.insert_eq_of_mem h, simp, },
-{ rw lengthAdd h, },
+cases (em (ϕ ∈ X)) with in_x not_in_x,
+{ rw finset.insert_eq_of_mem in_x, simp, },
+{ rw lengthAdd not_in_x, },
 end
 
 @[simp]
 lemma lengthRemove (X : finset formula) :
-  ∀ f ∈ X, lengthOfSet (X.erase f) + lengthOfFormula f = lengthOfSet X :=
+  ∀ ϕ ∈ X, lengthOfSet (X.erase ϕ) + lengthOfFormula ϕ = lengthOfSet X :=
 begin
-  intros f fInX,
-  have claim : lengthOfSet (insert f (X \ {f})) = lengthOfSet (X \ {f}) + lengthOfFormula f,
+  intros ϕ in_X,
+  have claim : lengthOfSet (insert ϕ (X \ {ϕ})) = lengthOfSet (X \ {ϕ}) + lengthOfFormula ϕ,
   {
     apply lengthAdd,
     simp,
   },
-  have anotherClaim : insert f (X \ {f}) = X, {
+  have anotherClaim : insert ϕ (X \ {ϕ}) = X, {
     ext1,
     simp only [finset.mem_sdiff, finset.mem_insert, finset.mem_singleton],
     split,
@@ -213,14 +196,20 @@ begin
   finish,
 end
 
-@[simp]
-lemma lengthRemoveMin (X : finset formula) :
-  ∀ f ∈ X, lengthOfSet (X.erase f) = lengthOfSet X - lengthOfFormula f:=
+lemma projection_length_leq : ∀ f, (projection {f}).sum lengthOfFormula ≤ lengthOfFormula f :=
 begin
-  intros f fInX,
-  have claim := lengthRemove X f fInX,
-  dsimp at *,
-  omega,
+  intro f,
+  cases f,
+  { omega, },
+  { exact dec_trivial, },
+  { exact dec_trivial, },
+  { exact dec_trivial, },
+  { have subsubClaim : projection {□f} = {f}, {
+      ext1, rw proj, simp,
+    },
+    rw subsubClaim,
+    unfold lengthOfFormula, simp,
+  },
 end
 
 lemma sum_union_le { T } [decidable_eq T] : ∀ { X Y : finset T } { F : T → ℕ }, (X ∪ Y).sum F ≤ X.sum F + Y.sum F :=
@@ -232,12 +221,38 @@ begin
   },
 end
 
+lemma projection_set_length_leq : ∀ X, lengthOfSet (projection X) ≤ lengthOfSet X :=
+begin
+intro X,
+apply finset.induction_on X,
+{ unfold lengthOfSet, simp, intros f f_in_empty, cases f_in_empty, },
+{ intros f S f_not_in_S IH,
+  unfold lengthOfSet,
+  rw finset.sum_insert f_not_in_S,
+  simp,
+  have insert_comm_proj : ∀ X f, projection (insert f X) = (projection {f}) ∪ (projection X), {
+    intros X f,
+    unfold projection,
+    ext1 g,
+    simp,
+    split, all_goals { finish, },
+  },
+  { calc (projection (insert f S)).sum lengthOfFormula
+       = (projection (insert f S)).sum lengthOfFormula : refl _
+   ... = (projection {f} ∪ projection S).sum lengthOfFormula : by { rw insert_comm_proj S f, }
+   ... ≤ (projection {f}).sum lengthOfFormula + (projection S).sum lengthOfFormula : by { apply sum_union_le, }
+   ... ≤ lengthOfFormula f + (projection S).sum lengthOfFormula : by { simp, apply projection_length_leq, }
+   ... ≤ lengthOfFormula f + S.sum lengthOfFormula : by { simp, apply IH, },
+  },
+},
+end
+
 -- avoid α and β for formula sets (follow Borzechowski and use X for set)
 open hasComplexity -- remove?
 open hasLength
 
-lemma rulesDecreaseLength { α : finset formula } { B : finset (finset formula) } (r : rule α B) :
-  ∀ β ∈ B, lengthOfSet β < lengthOfSet α :=
+lemma rulesDecreaseLength { X : finset formula } { B : finset (finset formula) } (r : rule X B) :
+  ∀ Y ∈ B, lengthOfSet Y < lengthOfSet X :=
 begin
   cases r,
   all_goals { intros β inB, simp at *, },
@@ -247,110 +262,72 @@ begin
   case rule.not : {
     cases inB, -- no premises
   },
-  case rule.neg : {
+  case rule.neg : X ϕ notnot_in_X {
     subst inB,
-    { calc lengthOfSet (insert r_f (α.erase (~~r_f)))
-         ≤ lengthOfSet (α.erase (~~r_f)) + lengthOf (r_f) : by { apply lemmaVanEmma, }
-     ... < lengthOfSet (α.erase (~~r_f)) + lengthOf (r_f) + 2 : by { simp, }
-     ... = lengthOfSet (α.erase (~~r_f)) + lengthOf (~~r_f) : by { unfold lengthOf, unfold lengthOfFormula, ring, }
-     ... = lengthOfSet α : lengthRemove α (~~r_f) r_h,
+    { calc lengthOfSet (insert ϕ (X.erase (~~ϕ)))
+         ≤ lengthOfSet (X.erase (~~ϕ)) + lengthOf (ϕ) : by { apply lengthOf_insert_leq_plus, }
+     ... < lengthOfSet (X.erase (~~ϕ)) + lengthOf (ϕ) + 2 : by { simp, }
+     ... = lengthOfSet (X.erase (~~ϕ)) + lengthOf (~~ϕ) : by { unfold lengthOf, unfold lengthOfFormula, ring, }
+     ... = lengthOfSet X : lengthRemove X (~~ϕ) notnot_in_X,
     },
   },
-  case rule.con : {
+  case rule.con : X ϕ ψ in_X {
     subst inB,
     apply gt.lt, -- TODO remove this and turn around calc proof
-    { calc lengthOfSet α
-         = lengthOf (α.erase (r_f⋀r_g)) + lengthOf (r_f⋀r_g) : (lengthRemove α (r_f⋀r_g) r_h).symm
-     ... = lengthOf (α.erase (r_f⋀r_g)) + lengthOf r_f + lengthOf r_g + 1 :
+    { calc lengthOfSet X
+         = lengthOf (X.erase (ϕ⋏ψ)) + lengthOf (ϕ⋏ψ) : (lengthRemove X (ϕ⋏ψ) in_X).symm
+     ... = lengthOf (X.erase (ϕ⋏ψ)) + lengthOf ϕ + lengthOf ψ + 1 :
            by { unfold lengthOf, unfold lengthOfFormula, ring, }
-     ... > lengthOf (α.erase (r_f⋀r_g)) + lengthOf r_f + lengthOf r_g : by { unfold lengthOf, simp, }
-     ... = lengthOf (α.erase (r_f⋀r_g)) + lengthOf r_g + lengthOf r_f : by { ring, }
-     ... ≥ lengthOf (insert r_g (α.erase (r_f⋀r_g))) + lengthOf r_f : by { simp, apply lemmaVanEmma, }
-     ... ≥ lengthOf (insert r_f (insert r_g (α.erase (r_f⋀r_g)))) : by { simp, apply lemmaVanEmma, },
+     ... > lengthOf (X.erase (ϕ⋏ψ)) + lengthOf ϕ + lengthOf ψ : by { unfold lengthOf, simp, }
+     ... = lengthOf (X.erase (ϕ⋏ψ)) + lengthOf ψ + lengthOf ϕ : by { ring, }
+     ... ≥ lengthOf (insert ψ (X.erase (ϕ⋏ψ))) + lengthOf ϕ : by { simp, apply lengthOf_insert_leq_plus, }
+     ... ≥ lengthOf (insert ϕ (insert ψ (X.erase (ϕ⋏ψ)))) : by { simp, apply lengthOf_insert_leq_plus, },
     },
   },
-  case rule.nCo : {
+  case rule.nCo : X ϕ ψ in_X {
     cases inB, -- splitting rule!
     all_goals {
       subst inB,
     },
     { -- f
-    calc lengthOfSet (insert (~r_f) (α.erase (~(r_f⋀r_g))))
-         ≤ lengthOfSet (α.erase (~(r_f⋀r_g))) + lengthOf (~r_f) : lemmaVanEmma
-     ... < lengthOfSet (α.erase (~(r_f⋀r_g))) + 1 + 1 + lengthOf r_f + lengthOf r_g :
+    calc lengthOfSet (insert (~ϕ) (X.erase (~(ϕ⋏ψ))))
+         ≤ lengthOfSet (X.erase (~(ϕ⋏ψ))) + lengthOf (~ϕ) : lengthOf_insert_leq_plus
+     ... < lengthOfSet (X.erase (~(ϕ⋏ψ))) + 1 + 1 + lengthOf ϕ + lengthOf ψ :
            by { unfold lengthOf, unfold lengthOfFormula, ring_nf, simp, }
-     ... = lengthOfSet (α.erase (~(r_f⋀r_g))) + lengthOf (~(r_f⋀r_g)) : by { unfold lengthOf, unfold lengthOfFormula, ring, }
-     ... = lengthOfSet α : lengthRemove α (~(r_f⋀r_g)) r_h,
+     ... = lengthOfSet (X.erase (~(ϕ⋏ψ))) + lengthOf (~(ϕ⋏ψ)) : by { unfold lengthOf, unfold lengthOfFormula, ring, }
+     ... = lengthOfSet X : lengthRemove X (~(ϕ⋏ψ)) in_X,
     },
     { -- g
-    calc lengthOfSet (insert (~r_g) (α.erase (~(r_f⋀r_g))))
-         ≤ lengthOfSet (α.erase (~(r_f⋀r_g))) + lengthOf (~r_g) : lemmaVanEmma
-     ... < lengthOfSet (α.erase (~(r_f⋀r_g))) + 1 + 1 + lengthOf r_f + lengthOf r_g :
+    calc lengthOfSet (insert (~ψ) (X.erase (~(ϕ⋏ψ))))
+         ≤ lengthOfSet (X.erase (~(ϕ⋏ψ))) + lengthOf (~ψ) : lengthOf_insert_leq_plus
+     ... < lengthOfSet (X.erase (~(ϕ⋏ψ))) + 1 + 1 + lengthOf ϕ + lengthOf ψ :
            by { unfold lengthOf, unfold lengthOfFormula, ring_nf, simp, }
-     ... = lengthOfSet (α.erase (~(r_f⋀r_g))) + lengthOf (~(r_f⋀r_g)) : by { unfold lengthOf, unfold lengthOfFormula, ring, }
-     ... = lengthOfSet α : lengthRemove α (~(r_f⋀r_g)) r_h,
+     ... = lengthOfSet (X.erase (~(ϕ⋏ψ))) + lengthOf (~(ϕ⋏ψ)) : by { unfold lengthOf, unfold lengthOfFormula, ring, }
+     ... = lengthOfSet X : lengthRemove X (~(ϕ⋏ψ)) in_X,
     },
   },
-  case rule.atm : {
+  case rule.atm : X ϕ in_X {
     subst inB,
     -- TODO: move some of these to top level lemmas
     have proj_form_lt : ∀ f g, some g = formProjection f → lengthOfFormula g < lengthOfFormula f, {
       intros f g g_is_fP_f, cases f, all_goals { finish, },
     },
-    have proj_claim : ∀ f, (projection {f}).sum lengthOfFormula ≤ lengthOfFormula f, {
-      intro f,
-      cases f,
-      { omega, },
-      { exact dec_trivial, },
-      { exact dec_trivial, },
-      { exact dec_trivial, },
-      { have subsubClaim : projection {□f} = {f}, {
-          ext1, rw proj, simp,
-        },
-        rw subsubClaim,
-        unfold lengthOfFormula, simp,
-      },
-    },
     have lengthSingleton : ∀ f, lengthOfFormula f = lengthOfSet { f }, {
       intro f, unfold lengthOfSet, simp,
     },
-    have insert_comm_proj : ∀ X f, projection (insert f X) = (projection {f}) ∪ (projection X), {
-      intros X f,
-      unfold projection,
-      ext1 g,
-      simp,
-      split, all_goals { finish, },
-    },
-    have claim : ∀ X, lengthOfSet (projection X) ≤ lengthOfSet X, {
-      intro X,
-      apply finset.induction_on X,
-      { unfold lengthOfSet, simp, intros f f_in_empty, cases f_in_empty, },
-      { simp, intros f S f_not_in_S IH,
-        unfold lengthOfSet,
-        rw finset.sum_insert f_not_in_S,
-        simp,
-        { calc (projection (insert f S)).sum lengthOfFormula
-             = (projection (insert f S)).sum lengthOfFormula : refl _
-         ... = (projection {f} ∪ projection S).sum lengthOfFormula : by { rw insert_comm_proj S f, }
-         ... ≤ (projection {f}).sum lengthOfFormula + (projection S).sum lengthOfFormula : by { apply sum_union_le, }
-         ... ≤ lengthOfFormula f + (projection S).sum lengthOfFormula : by { simp, apply proj_claim, }
-         ... ≤ lengthOfFormula f + S.sum lengthOfFormula : by { simp, apply IH, },
-        },
-      },
-    },
-    have otherClaim : projection α = projection (α.erase (~□r_f)), {
+    have otherClaim : projection X = projection (X.erase (~□ϕ)), {
       ext1 phi,
       rw proj, rw proj,
       simp,
     },
-    { calc lengthOfSet (insert (~r_f) (projection α))
-         ≤ lengthOfSet (projection α) + lengthOf (~r_f) : lemmaVanEmma
-     ... = lengthOfSet (projection α) + 1 + lengthOf r_f : by { unfold lengthOf, unfold lengthOfFormula, ring, }
-     ... < lengthOfSet (projection α) + 1 + 1 + lengthOf r_f : by { simp, }
-     ... = lengthOfSet (projection α) + lengthOf (~□r_f) : by { unfold lengthOf, unfold lengthOfFormula, ring, }
-     ... = lengthOfSet (projection (α.erase (~□r_f))) + lengthOf (~□r_f) : by { rw otherClaim, }
-     ... ≤ lengthOfSet (α.erase (~□r_f)) + lengthOf (~□r_f) : by { simp, apply claim, }
-     ... = lengthOfSet α : lengthRemove α (~□r_f) r_h,
+    { calc lengthOfSet (insert (~ϕ) (projection X))
+         ≤ lengthOfSet (projection X) + lengthOf (~ϕ) : lengthOf_insert_leq_plus
+     ... = lengthOfSet (projection X) + 1 + lengthOf ϕ : by { unfold lengthOf, unfold lengthOfFormula, ring, }
+     ... < lengthOfSet (projection X) + 1 + 1 + lengthOf ϕ : by { simp, }
+     ... = lengthOfSet (projection X) + lengthOf (~□ϕ) : by { unfold lengthOf, unfold lengthOfFormula, ring, }
+     ... = lengthOfSet (projection (X.erase (~□ϕ))) + lengthOf (~□ϕ) : by { rw otherClaim, }
+     ... ≤ lengthOfSet (X.erase (~□ϕ)) + lengthOf (~□ϕ) : by { simp, apply projection_set_length_leq, }
+     ... = lengthOfSet X : lengthRemove X (~□ϕ) in_X,
     }
   },
 end

@@ -13,7 +13,7 @@ def evaluate {W : Type} : (kripkeModel W × W) → formula → Prop
 | (M,w) ⊥     := false
 | (M,w) (· c) := M.val w c
 | Mw (~ φ)    := not (evaluate Mw φ)
-| Mw (φ ⋀ ψ)  := evaluate Mw φ ∧ evaluate Mw ψ
+| Mw (φ ⋏ ψ)  := evaluate Mw φ ∧ evaluate Mw ψ
 | (M,w) (□ φ) := ∀ v : W, (M.rel w v → evaluate (M,v) φ)
 
 def tautology     (φ : formula) := ∀ W (M : kripkeModel W) w, evaluate (M,w) φ
@@ -67,10 +67,10 @@ infixl `⊭`:40 := λ a b, ¬ (a ⊨ b)
 lemma forms_to_sets { φ ψ : formula } : φ ⊨ ψ → ({φ}: finset formula) ⊨ ({ψ} : finset formula):=
 begin
   intros impTaut,
-  intros W M w lhs ψ psi_in_psi,
+  intros W M w lhs ψ1 psi1_in_setpsi,
   specialize impTaut W M w,
-  simp at psi_in_psi lhs impTaut,
-  rewrite psi_in_psi, -- needed even though no ψ_1 in goal here?!
+  simp at *,
+  subst psi1_in_setpsi,
   apply impTaut,
   exact lhs
 end

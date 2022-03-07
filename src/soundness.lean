@@ -189,7 +189,7 @@ begin
   case and: fa fb {
     unfold simple at simple_X,
     by_contradiction,
-    exact simple_X (fa ⋀ fb) f_in_X,
+    exact simple_X (fa ⋏ fb) f_in_X,
   },
   case box: f {
     unfold evaluate,
@@ -374,7 +374,7 @@ begin
     },
   },
   case rule.con : a f g hyp {
-    use ( (a \ {f ⋀ g}) ∪ { f, g } ),
+    use ( (a \ {f ⋏ g}) ∪ { f, g } ),
     split,
     simp,
     unfold setSatisfiable,
@@ -382,7 +382,7 @@ begin
     simp only [and_imp, forall_eq_or_imp, sdiff_singleton_is_erase, ne.def, finset.union_insert, finset.mem_insert, finset.mem_erase],
     split,
     { -- f
-      specialize w_sat_a (f⋀g) hyp,
+      specialize w_sat_a (f⋏g) hyp,
       unfold evaluate at *,
       exact w_sat_a.left,
     },
@@ -391,7 +391,7 @@ begin
       simp at hhyp,
       cases hhyp,
       { -- g
-        specialize w_sat_a (f⋀g) hyp,
+        specialize w_sat_a (f⋏g) hyp,
         unfold evaluate at *,
         rw hhyp, exact w_sat_a.right,
       },
@@ -403,12 +403,12 @@ begin
   case rule.nCo : a f g notfandg_in_a {
     unfold setSatisfiable,
     simp,
-    let w_sat_phi := w_sat_a (~(f⋀g)) notfandg_in_a,
+    let w_sat_phi := w_sat_a (~(f⋏g)) notfandg_in_a,
     unfold evaluate at w_sat_phi,
     rw not_and_distrib at w_sat_phi,
     cases w_sat_phi with not_w_f not_w_g,
     {
-      use (a \ { ~ (f ⋀ g) } ∪ {~f}),
+      use (a \ { ~ (f ⋏ g) } ∪ {~f}),
       split,
       {
         simp at *,
@@ -431,7 +431,7 @@ begin
       },
     },
     {
-      use (a \ { ~ (f ⋀ g) } ∪ {~g}),
+      use (a \ { ~ (f ⋏ g) } ∪ {~g}),
       split,
       {
         simp at *,

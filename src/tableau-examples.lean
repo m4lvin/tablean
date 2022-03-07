@@ -33,7 +33,7 @@ begin
 end
 
 -- an example:
-lemma noContradiction : provable (~ (p ⋀ ~p)) :=
+lemma noContradiction : provable (~ (p ⋏ ~p)) :=
 begin
   apply provable.byTableau,
   unfold closedTableau,
@@ -77,26 +77,26 @@ end
 
 
 -- Example 2
-example : closedTableau { r ⋀ ~□p, r ↣ □(p ⋀ q) } :=
+example : closedTableau { r ⋏ ~□p, r ↣ □(p ⋏ q) } :=
 begin
-  let α := { r ⋀ ~□p, r ↣ □(p ⋀ q) },
+  let α := { r ⋏ ~□p, r ↣ □(p ⋏ q) },
   change closedTableau α,
   dsimp at *, -- gets rid of ↣
   split,
   rotate,
   { -- con
-    apply tableau.byRule (rule.con (by {simp only [eq_self_iff_true, or_false, and_self, finset.mem_insert, finset.mem_singleton]} : (r ⋀ ~□p) ∈ α )),
+    apply tableau.byRule (rule.con (by {simp only [eq_self_iff_true, or_false, and_self, finset.mem_insert, finset.mem_singleton]} : (r ⋏ ~□p) ∈ α )),
     intros branch branch_def,
     simp only [finset.union_insert, finset.mem_singleton] at branch_def,
     -- nCo
-    apply tableau.byRule (rule.nCo (by {finish} : ~(r ⋀ (~(p ⋀ q).box)) ∈ branch)),
+    apply tableau.byRule (rule.nCo (by {finish} : ~(r ⋏ (~(p ⋏ q).box)) ∈ branch)),
     subst branch_def,
     dsimp only at *,
     intros b b_in,
     simp only [finset.mem_insert, finset.mem_singleton] at b_in,
     change b = {r, ~□p, ~r} ∨
-           b = {r, ~□p, ~~□(p⋀q)} at b_in,
-    refine if h1 : b = {r, ~□p, ~r} then _ else if h2 : b = {r, ~□p, ~~□(p⋀q)} then _ else _,
+           b = {r, ~□p, ~~□(p⋏q)} at b_in,
+    refine if h1 : b = {r, ~□p, ~r} then _ else if h2 : b = {r, ~□p, ~~□(p⋏q)} then _ else _,
     { rw h1, -- right branch
       let stuff : finset formula := { r, ~p.box, ~r},
       -- not:
@@ -105,24 +105,24 @@ begin
     },
     { rw h2, --left branch
       -- neg:
-      apply tableau.byRule (rule.neg (by {simp only [eq_self_iff_true, or_true, and_self, finset.mem_insert, finset.mem_singleton]} : ~~□(p ⋀ q) ∈ { r, ~□p, ~~□(p ⋀ q) })),
+      apply tableau.byRule (rule.neg (by {simp only [eq_self_iff_true, or_true, and_self, finset.mem_insert, finset.mem_singleton]} : ~~□(p ⋏ q) ∈ { r, ~□p, ~~□(p ⋏ q) })),
       intros child childDef,
       simp only [finset.mem_singleton] at *,
       subst childDef,
-      -- change tableau ({r, ~□p, □(p ⋀ q)}), -- SLOW, why?
+      -- change tableau ({r, ~□p, □(p ⋏ q)}), -- SLOW, why?
       -- atm:
-      apply tableau.byRule (rule.atm (by {simp} : ~□p ∈ {r, ~□p, □(p ⋀ q)} )),
+      apply tableau.byRule (rule.atm (by {simp} : ~□p ∈ {r, ~□p, □(p ⋏ q)} )),
       intros child childDef,
       simp only [false_or, eq_self_iff_true, finset.mem_singleton] at *,
       subst childDef,
       unfold projection,
       dsimp at *,
-      -- change tableau ({~p, (p⋀·'q')}), -- blocked due to formProjection
+      -- change tableau ({~p, (p⋏·'q')}), -- blocked due to formProjection
       -- con:
       apply tableau.byRule,
       apply @rule.con _ p q,
       simp only [exists_prop, part.mem_of_option, or_false, finset.mem_union, finset.mem_insert, finset.mem_pimage, finset.mem_singleton, option.mem_def] at *,
-      use □(p ⋀ q),
+      use □(p ⋏ q),
       simp only [eq_self_iff_true, or_true, formProjection, and_self],
       intros child childDef,
       simp only [finset.union_insert, finset.mem_singleton] at *,

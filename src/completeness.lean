@@ -72,10 +72,10 @@ begin
     use W, use M, use w,
     intros phi phi_in_a,
     simp at b_def,
-    have b_is_fga : b = insert f (insert g (a \ {f⋀g})), {
+    have b_is_fga : b = insert f (insert g (a \ {f⋏g})), {
       subst b_def, ext1, simp,
     },
-    have phi_in_b_or_is_fandg : phi ∈ b ∨ phi = f⋀g, {
+    have phi_in_b_or_is_fandg : phi ∈ b ∨ phi = f⋏g, {
       rw b_is_fga,
       simp,
       finish, -- finish,
@@ -100,7 +100,7 @@ begin
     use W, use M, use w,
     intros phi phi_in_a,
     simp at *,
-    have phi_in_b_or_is_notfandg : phi ∈ b ∨ phi = ~(f⋀g), {
+    have phi_in_b_or_is_notfandg : phi ∈ b ∨ phi = ~(f⋏g), {
       cases b_def ; { rw b_def, simp, finish, },
     },
     cases b_def,

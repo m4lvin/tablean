@@ -7,8 +7,8 @@ open formula
 def saturated : set formula → Prop
 | X := ∀ P Q : formula,
   ( ~~P ∈ X → P ∈ X ) ∧
-  ( P⋀Q ∈ X → P ∈ X ∧ Q ∈ X ) ∧
-  ( ~(P⋀Q) ∈ X → ~P ∈ X ∨ ~Q ∈ X )
+  ( P⋏Q ∈ X → P ∈ X ∧ Q ∈ X ) ∧
+  ( ~(P⋏Q) ∈ X → ~P ∈ X ∨ ~Q ∈ X )
   -- TODO: closure for program combinators!
 
 -- Definition 19, page 31
@@ -85,7 +85,7 @@ begin
         { left, exact minus_IH_P notP_in_X },
         { right, exact minus_IH_Q notQ_in_X, },
       },
-      { intros PandQ_in_X Y X_rel_Y, exact iii X Y (P ⋀ Q) X_rel_Y PandQ_in_X, }
+      { intros PandQ_in_X Y X_rel_Y, exact iii X Y (P ⋏ Q) X_rel_Y PandQ_in_X, }
     },
     case box : P IH {
       repeat { split },

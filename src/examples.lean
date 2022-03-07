@@ -41,7 +41,7 @@ begin
 end
 
 lemma A3 (X Y : formula) :
-  tautology (□(X ⋀ Y) ↣ □X ⋀ □Y) :=
+  tautology (□(X ⋏ Y) ↣ □X ⋏ □Y) :=
 begin
   unfold tautology evaluate,
   intros W M w,

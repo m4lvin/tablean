@@ -5,10 +5,6 @@ import data.set.finite
 import data.finset.fold
 import algebra.big_operators.basic
 
--- think about using α instead of char
--- imports?
--- use namespaces?
-
 /- Formulas -/
 @[derive decidable_eq]
 inductive formula : Type
@@ -27,11 +23,11 @@ def r := formula.atom_prop 'r'
 notation `·` c       := formula.atom_prop c
 prefix `~`:88        := formula.neg
 prefix `□`:77        := formula.box
-infixr `⋀`:66        := formula.and
+infixr `⋏`:66        := formula.and
 @[simp]
-def impl (φ ψ : formula) := ~(φ ⋀ (~ψ))
+def impl (φ ψ : formula) := ~(φ ⋏ (~ψ))
 infixr `↣`:55        := impl
-infixl `⟷`:77        := λ ϕ ψ, (ϕ ↣ ψ) ⋀ (ψ ↣ ϕ)
+infixl `⟷`:77        := λ ϕ ψ, (ϕ ↣ ψ) ⋏ (ψ ↣ ϕ)
 
 @[simp]
 instance : has_bot formula := ⟨formula.bottom⟩
@@ -40,10 +36,10 @@ instance : has_top formula := ⟨formula.neg formula.bottom⟩
 -- showing formulas as strings that are valid Lean code
 def formToString : formula → string
 | ⊥       := "⊥"
-| (· ch)  := repr ch
-| ~f      := "~" ++ formToString f
-| (f ⋀ g) := "(" ++ formToString f ++ " ⋀ " ++ formToString g ++ ")"
-| (□ f)   := "(□ "++ formToString f ++ ")"
+| (· c)   := repr c
+| ~ϕ      := "~" ++ formToString ϕ
+| (ϕ ⋏ ψ) := "(" ++ formToString ϕ ++ " ⋏ " ++ formToString ψ ++ ")"
+| (□ ϕ)   := "(□ "++ formToString ϕ ++ ")"
 
 instance : has_repr formula := ⟨formToString⟩
 
@@ -52,11 +48,11 @@ instance : has_repr formula := ⟨formToString⟩
 -- this should later be the measure from Lemma 2, page 20
 @[simp]
 def lengthOfFormula : formula → ℕ
-| (⊥)     := 1
+| (⊥)     := 1 -- FIXME: has bad width
 | (· c)   := 1
 | (~ φ)   := 1 + lengthOfFormula φ
-| (φ ⋀ ψ) := 1 + lengthOfFormula φ + lengthOfFormula ψ
-| (□ φ)  := 1 + lengthOfFormula φ
+| (φ ⋏ ψ) := 1 + lengthOfFormula φ + lengthOfFormula ψ
+| (□ φ)   := 1 + lengthOfFormula φ
 
 def lengthOfSet : finset formula → ℕ
 | X := X.sum lengthOfFormula
@@ -71,7 +67,7 @@ def complexityOfFormula : formula → ℕ
 | (⊥)     := 1
 | (· c)   := 1
 | (~ φ)   := 1 + complexityOfFormula φ
-| (φ ⋀ ψ) := 1 + max (complexityOfFormula φ) (complexityOfFormula ψ)
+| (φ ⋏ ψ) := 1 + max (complexityOfFormula φ) (complexityOfFormula ψ)
 | (□ φ)   := 1 + complexityOfFormula φ
 
 def complexityOfSet : finset formula → ℕ
@@ -85,14 +81,14 @@ instance setFormula_hasComplexity : hasComplexity (finset formula) := hasComplex
 -- VOCABULARY
 
 def vocabOfFormula : formula → finset char
-| (⊥)       := set.to_finset { }
-| ( (· c))  := { c }
-| (~ φ)     := vocabOfFormula φ
-| ((φ ⋀ ψ)) := vocabOfFormula φ ∪ vocabOfFormula ψ
-| ((□ φ))   := vocabOfFormula φ
+| (⊥)      := set.to_finset { }
+| ( (· c)) := { c }
+| (~ φ)    := vocabOfFormula φ
+| (φ ⋏ ψ ) := vocabOfFormula φ ∪ vocabOfFormula ψ
+| (□ φ)    := vocabOfFormula φ
 
 def vocabOfSetFormula : finset formula → finset char
-| (X) := finset.fold (∪) ∅ vocabOfFormula X
+| X := finset.fold (∪) ∅ vocabOfFormula X
 
 class hasVocabulary (α : Type) := (voc : α → finset char)
 open hasVocabulary
