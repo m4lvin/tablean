@@ -510,8 +510,8 @@ begin
   simp,
   unfold inconsistent,
   intro hyp,
-  cases hyp with tab_X _,
-  exact tableauThenNotSat X tab_X,
+  cases hyp with t t_isClosed,
+  exact tableauThenNotSat X ⟨t, t_isClosed⟩,
 end
 
 lemma soundTableau : ∀ φ, provable φ → ¬ setSatisfiable {~φ} :=

@@ -188,20 +188,49 @@ begin
   -- induction tabl_X with a B f f_in_a rule_a_B children IH,
 end
 
+-- Theorem 3, page 36
+-- later TODO: add "normal Z0" constraint
+theorem model_existence { Z0 : finset formula } :
+  consistent Z0 → ∃ W (μ : modelGraph W) (S ∈ W), Z0 ⊆ S :=
+begin
+  intro cons_Z0,
+  unfold consistent at *,
+  unfold inconsistent at *,
+  push_neg at cons_Z0,
+  set N := lengthOfSet Z0,
+  -- TODO: it would be much nicer if existsTableauFor were a function / data
+  have t := existsTableauFor N Z0 (by {refl, }),
+  cases t with T _,
+  specialize cons_Z0 T,
+  -- TODO: given the non-closed (= open) tableau T, build the modelGraph ...
+  sorry,
+end
+
 -- Theorem 4, page 37
 theorem completeness : ∀ X, consistent X ↔ setSatisfiable X :=
 begin
   intro X,
   split,
-  {
-    sorry,
+  { intro X_is_consistent,
+    -- Use Theorem 3:
+    rcases model_existence X_is_consistent with ⟨W, μ, S, S_in_W, X_subseteq_S ⟩,
+    unfold setSatisfiable,
+    use W,
+    -- use Lemma 9:
+    have tL := truthLemma μ,
+    rcases μ with⟨ model, props ⟩,
+    use model,
+    use ⟨S,S_in_W⟩,
+    intros ϕ phi_in_X,
+    apply tL,
+    apply X_subseteq_S,
+    exact phi_in_X,
   },
-  {
-    exact correctness X,
-  },
+  -- use Theorem 2:
+  exact correctness X,
 end
 
-lemma formCompleteness : ∀ φ, consistent {φ} ↔ satisfiable φ :=
+lemma singletonCompleteness : ∀ φ, consistent {φ} ↔ satisfiable φ :=
 begin
   intro f,
   split,

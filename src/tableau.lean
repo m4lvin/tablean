@@ -127,7 +127,7 @@ inductive provable : formula → Prop
 
 -- Definition 17, page 30
 def inconsistent : finset formula → Prop
-| X := ∃ t : closedTableau X, true
+| X := ∃ t : tableau X, isClosedTableau t
 def consistent : finset formula → Prop
 | X := ¬ inconsistent X
 
