@@ -213,14 +213,14 @@ begin
   split,
   { intro X_is_consistent,
     -- Use Theorem 3:
-    rcases model_existence X_is_consistent with ⟨W, μ, S, S_in_W, X_subseteq_S ⟩,
+    rcases model_existence X_is_consistent with ⟨W, μ, S, S_in_W, X_subseteq_S⟩,
     unfold setSatisfiable,
     use W,
     -- use Lemma 9:
     have tL := truthLemma μ,
-    rcases μ with⟨ model, props ⟩,
-    use model,
-    use ⟨S,S_in_W⟩,
+    rcases μ with ⟨M, props⟩,
+    use M,
+    use ⟨S, S_in_W⟩,
     intros ϕ phi_in_X,
     apply tL,
     apply X_subseteq_S,
