@@ -5,7 +5,7 @@ import data.set.finite
 import data.finset.fold
 import algebra.big_operators.basic
 
-/- Formulas -/
+-- Definition 1, page 4
 @[derive decidable_eq]
 inductive formula : Type
 | bottom : formula

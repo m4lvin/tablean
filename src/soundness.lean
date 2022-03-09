@@ -238,7 +238,6 @@ begin
         rcases f_and_notf_in_X with ⟨ f, f_in_X, notf_in_X ⟩,
         let w_sat_f :=  w_sat_X f f_in_X,
         let w_sat_notf :=  w_sat_X (~f) notf_in_X,
-        -- unfold evaluatePoint at *,
         unfold evaluate at *,
         exact absurd w_sat_f w_sat_notf,
       }
@@ -246,11 +245,10 @@ begin
     { -- show that for each ~[]R ∈ X the projection with ~R is satisfiable:
       intros R notboxr_in_X,
       let w_sat_notboxr := w_sat_X (~□R) notboxr_in_X,
-      -- unfold evaluatePoint at w_sat_notboxr,
       unfold evaluate at w_sat_notboxr,
       simp at w_sat_notboxr,
       rcases w_sat_notboxr with ⟨ v, w_rel_v, v_sat_notr ⟩,
-      use W, use M, use v,
+      use [W, M, v],
       intro g,
       simp at *,
       rw or_imp_distrib,
@@ -285,15 +283,12 @@ begin
       intro k,
       cases k with R notboxr_in_X,
       simp at notboxr_in_X,
-      use typeFor R notboxr_in_X,
-      use modelFor R notboxr_in_X,
-      use worldFor R notboxr_in_X,
+      use [typeFor R notboxr_in_X, modelFor R notboxr_in_X, worldFor R notboxr_in_X],
     end,
     let newVal := λ c, formula.atom_prop c ∈ X,
     let BigM := combinedModel collection newVal,
     use unit ⊕ Σ k : β, (collection k).fst,
-    use BigM.fst,
-    use BigM.snd,
+    use [BigM.fst, BigM.snd],
     -- apply Lemma, missing last argument "all_pro_sat"
     -- we need to use that X_is_simple (to restrict cases what phi can be)
     -- and that X is not closed (to ensure that it is locally consistent)
@@ -358,7 +353,7 @@ begin
     use (a \ {~~f} ∪ {f}),
     simp only [true_and, eq_self_iff_true, sdiff_singleton_is_erase, multiset.mem_singleton, finset.mem_mk],
     unfold setSatisfiable,
-    use W, use M, use w, -- is there something nicer?
+    use [W, M, w],
     intro g,
     simp only [ne.def, union_singleton_is_insert, finset.mem_insert, finset.mem_erase],
     rw or_imp_distrib,
@@ -378,7 +373,7 @@ begin
     split,
     simp,
     unfold setSatisfiable,
-    use W, use M, use w,
+    use [W, M, w],
     simp only [and_imp, forall_eq_or_imp, sdiff_singleton_is_erase, ne.def, finset.union_insert, finset.mem_insert, finset.mem_erase],
     split,
     { -- f
@@ -414,7 +409,7 @@ begin
         simp at *,
       },
       {
-        use W, use M, use w,
+        use [W, M, w],
         intro psi,
         simp,
         intro psi_def,
@@ -437,7 +432,7 @@ begin
         simp at *,
       },
       {
-        use W, use M, use w,
+        use [W, M, w],
         intro psi,
         simp,
         intro psi_def,
@@ -466,7 +461,7 @@ begin
     -- show that the projection is satisfiable:
     --unfold projection,
     unfold setSatisfiable,
-    use W, use M, use v,
+    use [W, M, v],
     intros phi phi_is_notf_or_boxphi_in_a,
     simp only [union_singleton_is_insert, finset.mem_insert] at *,
     cases phi_is_notf_or_boxphi_in_a with phi_is_notf boxphi_in_a,

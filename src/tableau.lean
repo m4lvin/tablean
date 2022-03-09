@@ -9,7 +9,7 @@ import tactic
 
 open formula
 
--- Definition 9
+-- Definition 9, page 15
 -- TODO add programs here!
 -- A set X is closed  iff  0 ∈ X or X contains a formula and its negation.
 def closed : finset formula → Prop := λ X, ⊥ ∈ X ∨ ∃ f ∈ X, ~f ∈ X
@@ -73,8 +73,9 @@ inductive rule : finset formula → finset (finset formula) → Type
 | nCo { X ϕ ψ } ( h : ~(ϕ ⋏ ψ)   ∈ X ) : rule X { X \ { ~ (ϕ ⋏ ψ) } ∪ {~ϕ}
                                                 , X \ { ~ (ϕ ⋏ ψ) } ∪ {~ψ} }
 -- the atomic rule:
-| atm { X ϕ   } ( h : ~□ϕ       ∈ X ) : rule X { projection X ∪ {~ϕ} }
+| atm { X ϕ   } ( h : ~□ϕ       ∈ X )  : rule X { projection X ∪ {~ϕ} }
 
+-- Definition 8, page 14
 -- Note: any tableau is maximal.
 inductive tableau : finset formula → Type
 | byRule { X B } (_ : rule X B) (_ : Π Y ∈ B, tableau Y) : tableau X
@@ -84,6 +85,7 @@ inductive tableau : finset formula → Type
 -- - inductive Prop and then subtype <<<<< currently using this.
 -- - inductive Type, then write conversion functions?
 --   inductive closedTableau : finset formula → Type -- might not be possible to do ∀ α :-(
+-- Definition 16, page 29
 inductive isClosedTableau : Π { X : finset formula }, tableau X -> Prop
 | byRule { X } { B } (r : rule X B) (prev : Π Y ∈ B, tableau Y) :
     (∀ Y, Π H : Y ∈ B, isClosedTableau (prev Y H)) → isClosedTableau (tableau.byRule r prev)

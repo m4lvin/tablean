@@ -4,11 +4,12 @@ import data.set.lattice
 
 import syntax
 
-/- Kripke Models wih one binary relation  -/
+-- Definition 2, page 6
 structure kripkeModel (W : Type) : Type :=
   (val : W → char → Prop)
   (rel : W → W → Prop)
 
+-- Definition 3, page 6
 def evaluate {W : Type} : (kripkeModel W × W) → formula → Prop
 | (M,w) ⊥     := false
 | (M,w) (· c) := M.val w c
@@ -19,7 +20,7 @@ def evaluate {W : Type} : (kripkeModel W × W) → formula → Prop
 def tautology     (φ : formula) := ∀ W (M : kripkeModel W) w, evaluate (M,w) φ
 def contradiction (φ : formula) := ∀ W (M : kripkeModel W) w, ¬ evaluate (M,w) φ
 
--- TODO class satisf
+-- Definition 4, page 8
 def satisfiable   (φ : formula) := ∃ W (M : kripkeModel W) w, evaluate (M,w) φ
 def setSatisfiable (X : finset formula) := ∃ W (M : kripkeModel W) w, (∀ φ ∈ X, evaluate (M,w) φ)
 
@@ -48,6 +49,7 @@ end
 def semImplies_sets (X : finset formula) (Y : finset formula) := ∀ (W : Type) (M : kripkeModel W) w,
   (∀ φ ∈ X, evaluate (M,w) φ) → (∀ ψ ∈ Y, evaluate (M,w) ψ)
 
+-- Definition 5, page 9
 class vDash {α : Type} {β : Type} := (semImplies : α → β → Prop)
 open vDash
 @[simp]
