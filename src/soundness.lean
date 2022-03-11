@@ -7,6 +7,7 @@ open classical
 local attribute [instance, priority 10] prop_decidable
 
 -- Combine a collection of pointed models with one new world using the given valuation.
+-- TODO: rewrite to term mode?
 def combinedModel { β : Type } (collection : β → Σ (W : Type), kripkeModel W × W) (newVal : char → Prop) :
   kripkeModel (sum unit Σ k : β, (collection k).fst) × (sum unit Σ k : β, (collection k).fst) :=
 begin
@@ -385,10 +386,11 @@ begin
       intros h hhyp,
       simp at hhyp,
       cases hhyp,
-      { -- g
+      { -- h = g
         specialize w_sat_a (f⋏g) hyp,
         unfold evaluate at *,
-        rw hhyp, exact w_sat_a.right,
+        rw hhyp,
+        exact w_sat_a.right,
       },
       { -- h in a
         exact w_sat_a h hhyp.right,
@@ -402,48 +404,36 @@ begin
     unfold evaluate at w_sat_phi,
     rw not_and_distrib at w_sat_phi,
     cases w_sat_phi with not_w_f not_w_g,
-    {
-      use (a \ { ~ (f ⋏ g) } ∪ {~f}),
+    { use (a \ { ~ (f ⋏ g) } ∪ {~f}),
       split,
-      {
-        simp at *,
-      },
-      {
-        use [W, M, w],
+      { simp at *, },
+      { use [W, M, w],
         intro psi,
         simp,
         intro psi_def,
         cases psi_def,
-        {
-          rw psi_def,
+        { rw psi_def,
           unfold evaluate,
           exact not_w_f,
         },
-        {
-          cases psi_def with psi_in_a,
+        { cases psi_def with psi_in_a,
           exact w_sat_a psi psi_def_right,
         },
       },
     },
-    {
-      use (a \ { ~ (f ⋏ g) } ∪ {~g}),
+    { use (a \ { ~ (f ⋏ g) } ∪ {~g}),
       split,
-      {
-        simp at *,
-      },
-      {
-        use [W, M, w],
+      { simp at *, },
+      { use [W, M, w],
         intro psi,
         simp,
         intro psi_def,
         cases psi_def,
-        {
-          rw psi_def,
+        { rw psi_def,
           unfold evaluate,
           exact not_w_g,
         },
-        {
-          cases psi_def with psi_in_a,
+        { cases psi_def with psi_in_a,
           exact w_sat_a psi psi_def_right,
         },
       },
@@ -465,13 +455,11 @@ begin
     intros phi phi_is_notf_or_boxphi_in_a,
     simp only [union_singleton_is_insert, finset.mem_insert] at *,
     cases phi_is_notf_or_boxphi_in_a with phi_is_notf boxphi_in_a,
-    {
-      rw phi_is_notf,
+    { rw phi_is_notf,
       unfold evaluate,
       exact v_not_sat_f,
     },
-    {
-      rw proj at boxphi_in_a,
+    { rw proj at boxphi_in_a,
       specialize w_sat_a phi.box boxphi_in_a,
       unfold evaluate at w_sat_a,
       exact w_sat_a v w_rel_v,
@@ -487,12 +475,10 @@ begin
   induction tabl_X with a B rule_a_B children IH,
   by_contradiction hyp,
   let m := ruleSoundness rule_a_B hyp,
-  {
-    cases tabl_X_is_closed,
+  { cases tabl_X_is_closed,
     finish,
   },
-  {
-    cases tabl_X_is_closed,
+  { cases tabl_X_is_closed,
   }
 end
 

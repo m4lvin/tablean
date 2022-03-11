@@ -5,6 +5,7 @@ import data.set.lattice
 import syntax
 
 -- Definition 2, page 6
+-- TODO: think about whether char is infinite / has to be ...
 structure kripkeModel (W : Type) : Type :=
   (val : W → char → Prop)
   (rel : W → W → Prop)

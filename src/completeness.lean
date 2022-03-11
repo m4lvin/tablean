@@ -169,25 +169,6 @@ begin
     },
 end
 
--- do we need this?
-lemma cons_then_open : ∀ X, consistent X → openTableau X :=
-begin
-  intros X X_cons,
-  unfold consistent at *,
-  unfold inconsistent at *,
-  sorry,
-end
-
-lemma notSatThenTableau : ∀ X, ¬ setSatisfiable X → closedTableau X :=
-begin
-  intro X,
-  intro not_sat_X,
-  unfold setSatisfiable at *,
-  simp at *,
-  sorry,
-  -- induction tabl_X with a B f f_in_a rule_a_B children IH,
-end
-
 -- Theorem 3, page 36
 -- later TODO: add "normal Z0" constraint
 theorem model_existence { Z0 : finset formula } :
