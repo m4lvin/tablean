@@ -90,6 +90,27 @@ inductive isClosedTableau : Π { X : finset formula }, tableau X -> Prop
 | byRule { X } { B } (r : rule X B) (prev : Π Y ∈ B, tableau Y) :
     (∀ Y, Π H : Y ∈ B, isClosedTableau (prev Y H)) → isClosedTableau (tableau.byRule r prev)
 
+def isLocalRule : ∀ X B, rule X B  → Prop
+| _ _ (rule.bot _) := true
+| _ _ (rule.not _) := true
+| _ _ (rule.neg _) := true
+| _ _ (rule.con _) := true
+| _ _ (rule.nCo _) := true
+| _ _ (rule.atm _) := false
+
+@[simp]
+def localRule ( X B ) := subtype (@isLocalRule X B)
+
+-- local maximal tableau
+inductive isLocalTableau : Π { X : finset formula }, tableau X -> Prop
+| byLocalRule{ X } { B } (r : localRule X B) (prev : Π Y ∈ B, tableau Y) :
+    (∀ Y, Π H : Y ∈ B, isLocalTableau (prev Y H)) → isLocalTableau (tableau.byRule r.val prev)
+-- | localStuck { X } : (¬ ∃ B (_ : localRule X B), true) → isLocalTableau (tableau.stuck ...)
+-- PROBLEM: a local maximal tableau is not a "tableau" according to the def above!
+
+@[simp]
+def localTableau ( X ) := subtype (@isLocalTableau X)
+
 @[simp]
 lemma closedTableauIffChildrenClosed { X B r children }:
   isClosedTableau (tableau.byRule (r : rule X B) children) ↔
