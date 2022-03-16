@@ -16,6 +16,7 @@ def closed : finset formula → Prop := λ X, ⊥ ∈ X ∨ ∃ f ∈ X, ~f ∈ 
 -- A set X is simple  iff  all P ∈ X are (negated) atoms or [A]_ or ¬[A]_.
 def simpleForm : formula → Prop
 | ⊥       := true
+| (~⊥)    := true -- added!
 | (· _)   := true
 | ~(· _)  := true
 | (□ _)   := true
@@ -75,21 +76,6 @@ inductive rule : finset formula → finset (finset formula) → Type
 -- the atomic rule:
 | atm { X ϕ   } ( h : ~□ϕ       ∈ X )  : rule X { projection X ∪ {~ϕ} }
 
--- Definition 8, page 14
--- Note: any tableau is maximal.
-inductive tableau : finset formula → Type
-| byRule { X B } (_ : rule X B) (_ : Π Y ∈ B, tableau Y) : tableau X
-| stuck { X } : (¬ ∃ B (_ : rule X B), true) → tableau X
-
--- approaches how to represent closed tableau:
--- - inductive Prop and then subtype <<<<< currently using this.
--- - inductive Type, then write conversion functions?
---   inductive closedTableau : finset formula → Type -- might not be possible to do ∀ α :-(
--- Definition 16, page 29
-inductive isClosedTableau : Π { X : finset formula }, tableau X -> Prop
-| byRule { X } { B } (r : rule X B) (prev : Π Y ∈ B, tableau Y) :
-    (∀ Y, Π H : Y ∈ B, isClosedTableau (prev Y H)) → isClosedTableau (tableau.byRule r prev)
-
 def isLocalRule : ∀ X B, rule X B  → Prop
 | _ _ (rule.bot _) := true
 | _ _ (rule.not _) := true
@@ -101,12 +87,76 @@ def isLocalRule : ∀ X B, rule X B  → Prop
 @[simp]
 def localRule ( X B ) := subtype (@isLocalRule X B)
 
--- local maximal tableau
+-- If X is not simple, then a local rule can be applied.
+-- (page 13)
+lemma notSimpleThenLocalRule { X } :
+  ¬ simple X → (∃ B (_ : localRule X B), true) :=
+begin
+  intro notSimple,
+  unfold simple at notSimple,
+  simp at notSimple,
+  rcases notSimple with ⟨ ϕ , ϕ_in_X, ϕ_not_simple ⟩,
+  cases ϕ,
+  case bottom: { tauto },
+  case atom_prop: { tauto },
+  case neg: ψ {
+    cases ψ,
+    case bottom: { tauto, },
+    case atom_prop: { tauto, },
+    case neg: {
+      unfold simpleForm at *,
+      use { (X \ {~~ψ}) ∪ { ψ } },
+      split, split, rotate,
+      use rule.neg ϕ_in_X,
+      tauto,
+      unfold isLocalRule,
+    },
+    case and: ψ1 ψ2 {
+      unfold simpleForm at *,
+      use { X \ { ~ (ψ1 ⋏ ψ2) } ∪ {~ψ1}, X \ { ~ (ψ1 ⋏ ψ2) } ∪ {~ψ2} },
+      split, split, rotate,
+      use rule.nCo ϕ_in_X,
+      tauto,
+      unfold isLocalRule,
+    },
+    case box: { unfold simpleForm at *, tauto, },
+  },
+  case and: ψ1 ψ2 {
+      unfold simpleForm at *,
+      use { (X \ {ψ1 ⋏ ψ2}) ∪ { ψ1, ψ2 } },
+      split, split, rotate,
+      use rule.con ϕ_in_X,
+      tauto,
+      unfold isLocalRule,
+  },
+  case box: { unfold simpleForm at *, tauto, },
+end
+
+-- Definition 8, page 14
+-- Note: any (t : tableau) is local-maximal.
+inductive tableau : finset formula → Type
+| byRule   { X B } (_ : rule X B) (_ : Π Y ∈ B, tableau Y) : tableau X
+| stuck    { X } : (¬ ∃ B (_ : rule X B), true) → tableau X
+| endLocal { X } : (¬ ∃ B (_ : localRule X B), true) → tableau X
+
+-- approaches how to represent closed tableau:
+-- - inductive Prop and then subtype <<<<< currently using this.
+-- - inductive Type, then write conversion functions?
+--   inductive closedTableau : finset formula → Type -- might not be possible to do ∀ α :-(
+-- Definition 16, page 29
+inductive isClosedTableau : Π { X : finset formula }, tableau X -> Prop
+| byRule { X } { B } (r : rule X B) (prev : Π Y ∈ B, tableau Y) :
+    (∀ Y, Π H : Y ∈ B, isClosedTableau (prev Y H)) → isClosedTableau (tableau.byRule r prev)
+
+def closedTableau ( X ) := subtype (@isClosedTableau X)
+
+def openTableau ( X ) := subtype (λ t, not (@isClosedTableau X t))
+
+-- ca. Definition 11 (with all PDL stuff missing for now)
 inductive isLocalTableau : Π { X : finset formula }, tableau X -> Prop
 | byLocalRule{ X } { B } (r : localRule X B) (prev : Π Y ∈ B, tableau Y) :
     (∀ Y, Π H : Y ∈ B, isLocalTableau (prev Y H)) → isLocalTableau (tableau.byRule r.val prev)
--- | localStuck { X } : (¬ ∃ B (_ : localRule X B), true) → isLocalTableau (tableau.stuck ...)
--- PROBLEM: a local maximal tableau is not a "tableau" according to the def above!
+| byEndLocal { X } (h : ¬ ∃ B (_ : localRule X B), true) : isLocalTableau (tableau.endLocal h)
 
 @[simp]
 def localTableau ( X ) := subtype (@isLocalTableau X)
@@ -133,12 +183,6 @@ begin
   by_contra,
   cases h,
 end
-
-@[simp]
-def closedTableau ( X ) := subtype (@isClosedTableau X)
-
-@[simp]
-def openTableau ( X ) := subtype (λ t, not (@isClosedTableau X t))
 
 -- is this useful/needed?
 @[simp]

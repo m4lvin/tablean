@@ -181,6 +181,9 @@ begin
         exact all_pro_sat,
       },
     },
+    case bottom: {
+      tauto,
+    },
     all_goals {
       unfold simple at simple_X,
       by_contradiction,
@@ -478,8 +481,7 @@ begin
   { cases tabl_X_is_closed,
     finish,
   },
-  { cases tabl_X_is_closed,
-  }
+  all_goals { cases tabl_X_is_closed, },
 end
 
 -- Theorem 2, page 30
