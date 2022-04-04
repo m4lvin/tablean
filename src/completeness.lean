@@ -8,25 +8,13 @@ import modelgraphs
 
 -- Definition 20, page 34 -- TODO
 
--- each individual rule is sound "upwards"
--- i.e.: if B is not satisfiable,
---       then there is a rule such that all the child nodes are not satisfiable.
-lemma tableauCompleteness {α : finset formula} { B : finset (finset formula) } :
-  ¬ setSatisfiable α → (∃ r : rule α B, (∀ β ∈ B, ¬ setSatisfiable β)) :=
-begin
-  contrapose,
-  intro hyp,
-  simp at *,
-  --- but where should we get a rule from now???
-  sorry,
-end
-
 -- Each rule is "complete", i.e. preserves satisfiability "upwards"
 -- Fixme: only holds for LOCAL rules, not for the modal atm rule!
 lemma ruleCompleteness {α : finset formula} { B : finset (finset formula) } :
-  rule α B → (∃ β ∈ B, setSatisfiable β) → setSatisfiable α :=
+  localRule α B → (∃ β ∈ B, setSatisfiable β) → setSatisfiable α :=
 begin
   intro r,
+  cases r with r r_is_local,
   cases r,
   case rule.bot {
     simp,
@@ -136,37 +124,8 @@ begin
     },
   },
   case rule.atm : X f notboxf_in_X {
-    intro hyp,
-    cases hyp with b H,
-    dsimp at H,
-    have projection_is_sat : setSatisfiable (projection X ∪ {~f}), {
-      unfold setSatisfiable at *,
-      cases H with b_def b_sat,
-      sorry,
-    },
-    -- how to show that X is satisfiable?
-    -- there might be contradictory stuff not affecting the projection
-    -- is it enough to only allow atm when not other rule is applicable?
-    -- needs to be added above!!
-    -- still, what about other negated boxes?
-    -- Example: X = { ~[]p, []p, ~[]q, []~q }
-    -- then projection X = { p, ~q }
-    -- and the rule application to ~[]p leads to closed,
-    -- but the rule application to ~[]q does not!?!?!?!
-    -- see page 17 of Borzechowski
-    have X_is_simple : simple X, {
-      -- this needs that no other rule can be applied!
-      sorry,
-    },
-    rw Lemma1_simple_sat_iff_all_projections_sat X_is_simple,
-    split,
-    { -- to show that X_is_not_closed : ¬ closed X,
-      sorry,
-    },
-    { -- to show that for all R, (projection X ∪ {~R}) is satisfiable,
-      sorry,
-    },
-    },
+    cases r_is_local, -- atm rule is not local!
+  },
 end
 
 -- Theorem 3, page 36
@@ -184,6 +143,9 @@ begin
   cases t with T _,
   specialize cons_Z0 T,
   -- TODO: given the non-closed (= open) tableau T, build the modelGraph ...
+
+  -- induction T, -- is this a good idea??
+
   sorry,
 end
 

@@ -54,6 +54,7 @@ def lengthOfFormula : formula → ℕ
 | (φ ⋏ ψ) := 1 + lengthOfFormula φ + lengthOfFormula ψ
 | (□ φ)   := 1 + lengthOfFormula φ
 
+@[simp]
 def lengthOfSet : finset formula → ℕ
 | X := X.sum lengthOfFormula
 

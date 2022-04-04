@@ -6,6 +6,7 @@ import data.finset.basic
 import data.finset.pimage
 import algebra.big_operators.order
 import tactic
+import order.well_founded_set
 
 open formula
 
@@ -63,29 +64,16 @@ end
 
 -- rules: given this set, apply rule to formula, resulting in these new sets
 -- rename candidates: "step" or "ruleApplication"
-inductive rule : finset formula → finset (finset formula) → Type
+inductive localRule : finset formula → finset (finset formula) → Type
 -- closing rules:
-| bot { X     } ( h : ⊥ ∈ X )          : rule X ∅
-| not { X ϕ   } ( h : ϕ ∈ X ∧ ~ϕ ∈ X ) : rule X ∅
--- simple rules:
-| neg { X ϕ   } ( h : ~~ϕ        ∈ X ) : rule X { (X \ {~~ϕ}) ∪ { ϕ }    }
-| con { X ϕ ψ } ( h : ϕ ⋏ ψ      ∈ X ) : rule X { (X \ {ϕ ⋏ ψ}) ∪ { ϕ, ψ } }
--- splitting rule:
-| nCo { X ϕ ψ } ( h : ~(ϕ ⋏ ψ)   ∈ X ) : rule X { X \ { ~ (ϕ ⋏ ψ) } ∪ {~ϕ}
-                                                , X \ { ~ (ϕ ⋏ ψ) } ∪ {~ψ} }
--- the atomic rule:
-| atm { X ϕ   } ( h : ~□ϕ       ∈ X )  : rule X { projection X ∪ {~ϕ} }
-
-def isLocalRule : ∀ X B, rule X B  → Prop
-| _ _ (rule.bot _) := true
-| _ _ (rule.not _) := true
-| _ _ (rule.neg _) := true
-| _ _ (rule.con _) := true
-| _ _ (rule.nCo _) := true
-| _ _ (rule.atm _) := false
-
-@[simp]
-def localRule ( X B ) := subtype (@isLocalRule X B)
+| bot { X     } ( h : ⊥          ∈ X ) : localRule X ∅
+| not { X ϕ   } ( h : ϕ ∈ X ∧ ~ϕ ∈ X ) : localRule X ∅
+-- simple localRules:
+| neg { X ϕ   } ( h : ~~ϕ        ∈ X ) : localRule X { (X \ {~~ϕ}) ∪ { ϕ }    }
+| con { X ϕ ψ } ( h : ϕ ⋏ ψ      ∈ X ) : localRule X { (X \ {ϕ ⋏ ψ}) ∪ { ϕ, ψ } }
+-- splitting localRule:
+| nCo { X ϕ ψ } ( h : ~(ϕ ⋏ ψ)   ∈ X ) : localRule X { X \ { ~ (ϕ ⋏ ψ) } ∪ {~ϕ}
+                                                     , X \ { ~ (ϕ ⋏ ψ) } ∪ {~ψ} }
 
 -- If X is not simple, then a local rule can be applied.
 -- (page 13)
@@ -104,99 +92,24 @@ begin
     case bottom: { tauto, },
     case atom_prop: { tauto, },
     case neg: {
-      unfold simpleForm at *,
       use { (X \ {~~ψ}) ∪ { ψ } },
-      split, split, rotate,
-      use rule.neg ϕ_in_X,
-      tauto,
-      unfold isLocalRule,
+      use localRule.neg ϕ_in_X,
     },
     case and: ψ1 ψ2 {
       unfold simpleForm at *,
       use { X \ { ~ (ψ1 ⋏ ψ2) } ∪ {~ψ1}, X \ { ~ (ψ1 ⋏ ψ2) } ∪ {~ψ2} },
-      split, split, rotate,
-      use rule.nCo ϕ_in_X,
-      tauto,
-      unfold isLocalRule,
+      use localRule.nCo ϕ_in_X,
     },
     case box: { unfold simpleForm at *, tauto, },
   },
   case and: ψ1 ψ2 {
       unfold simpleForm at *,
       use { (X \ {ψ1 ⋏ ψ2}) ∪ { ψ1, ψ2 } },
-      split, split, rotate,
-      use rule.con ϕ_in_X,
-      tauto,
-      unfold isLocalRule,
+      use localRule.con ϕ_in_X,
   },
-  case box: { unfold simpleForm at *, tauto, },
+  case box: { tauto, },
 end
 
--- Definition 8, page 14
--- Note: any (t : tableau) is local-maximal.
-inductive tableau : finset formula → Type
-| byRule   { X B } (_ : rule X B) (_ : Π Y ∈ B, tableau Y) : tableau X
-| stuck    { X } : (¬ ∃ B (_ : rule X B), true) → tableau X
-| endLocal { X } : (¬ ∃ B (_ : localRule X B), true) → tableau X
-
--- approaches how to represent closed tableau:
--- - inductive Prop and then subtype <<<<< currently using this.
--- - inductive Type, then write conversion functions?
---   inductive closedTableau : finset formula → Type -- might not be possible to do ∀ α :-(
--- Definition 16, page 29
-inductive isClosedTableau : Π { X : finset formula }, tableau X -> Prop
-| byRule { X } { B } (r : rule X B) (prev : Π Y ∈ B, tableau Y) :
-    (∀ Y, Π H : Y ∈ B, isClosedTableau (prev Y H)) → isClosedTableau (tableau.byRule r prev)
-
-def closedTableau ( X ) := subtype (@isClosedTableau X)
-
-def openTableau ( X ) := subtype (λ t, not (@isClosedTableau X t))
-
--- ca. Definition 11 (with all PDL stuff missing for now)
-inductive isLocalTableau : Π { X : finset formula }, tableau X -> Prop
-| byLocalRule{ X } { B } (r : localRule X B) (prev : Π Y ∈ B, tableau Y) :
-    (∀ Y, Π H : Y ∈ B, isLocalTableau (prev Y H)) → isLocalTableau (tableau.byRule r.val prev)
-| byEndLocal { X } (h : ¬ ∃ B (_ : localRule X B), true) : isLocalTableau (tableau.endLocal h)
-
-@[simp]
-def localTableau ( X ) := subtype (@isLocalTableau X)
-
-@[simp]
-lemma closedTableauIffChildrenClosed { X B r children }:
-  isClosedTableau (tableau.byRule (r : rule X B) children) ↔
-    ∀ t H, isClosedTableau (children t H) :=
-begin
-  split,
-  { intro lhs,
-    intros t H,
-    cases lhs with _ _ _ _ children_closed,
-    apply children_closed, },
-  { intro rhs,
-    apply isClosedTableau.byRule,
-    apply rhs, },
-end
-
-@[simp]
-lemma stuckTableausIsNotClosed { X h } :
-  ¬ isClosedTableau (@tableau.stuck X h) :=
-begin
-  by_contra,
-  cases h,
-end
-
--- is this useful/needed?
-@[simp]
-def complexityOfTableau : (Σ (X : finset formula) , tableau X) → ℕ
-| (⟨X,_⟩) := complexityOfSet X
-
-inductive provable : formula → Prop
-| byTableau {φ : formula} : closedTableau { ~ φ } → provable φ
-
--- Definition 17, page 30
-def inconsistent : finset formula → Prop
-| X := ∃ t : tableau X, isClosedTableau t
-def consistent : finset formula → Prop
-| X := ¬ inconsistent X
 
 @[simp]
 lemma union_singleton_is_insert {X : finset formula} {ϕ: formula} :
@@ -234,6 +147,7 @@ begin
   },
 end
 
+@[simp]
 lemma lengthOf_insert_leq_plus {X: finset formula} {ϕ : formula} :
   lengthOfSet (insert ϕ X) ≤ lengthOfSet X + lengthOfFormula ϕ :=
 begin
@@ -263,6 +177,7 @@ begin
   finish,
 end
 
+@[simp]
 lemma projection_length_leq : ∀ f, (projection {f}).sum lengthOfFormula ≤ lengthOfFormula f :=
 begin
   intro f,
@@ -279,6 +194,7 @@ begin
   },
 end
 
+@[simp]
 lemma sum_union_le { T } [decidable_eq T] : ∀ { X Y : finset T } { F : T → ℕ }, (X ∪ Y).sum F ≤ X.sum F + Y.sum F :=
 begin
   intros X Y F,
@@ -308,28 +224,26 @@ apply finset.induction_on X,
        = (projection (insert f S)).sum lengthOfFormula : refl _
    ... = (projection {f} ∪ projection S).sum lengthOfFormula : by { rw insert_comm_proj S f, }
    ... ≤ (projection {f}).sum lengthOfFormula + (projection S).sum lengthOfFormula : by { apply sum_union_le, }
-   ... ≤ lengthOfFormula f + (projection S).sum lengthOfFormula : by { simp, apply projection_length_leq, }
+   ... ≤ lengthOfFormula f + (projection S).sum lengthOfFormula : by { simp only [add_le_add_iff_right, projection_length_leq], }
    ... ≤ lengthOfFormula f + S.sum lengthOfFormula : by { simp, apply IH, },
   },
 },
 end
 
--- avoid α and β for formula sets (follow Borzechowski and use X for set)
-open hasComplexity -- remove?
 open hasLength
 
-lemma rulesDecreaseLength { X : finset formula } { B : finset (finset formula) } (r : rule X B) :
+lemma rulesDecreaseLength { X : finset formula } { B : finset (finset formula) } (r : localRule X B) :
   ∀ Y ∈ B, lengthOfSet Y < lengthOfSet X :=
 begin
   cases r,
   all_goals { intros β inB, simp at *, },
-  case rule.bot : {
+  case bot : {
     cases inB, -- no premises
   },
-  case rule.not : {
+  case not : {
     cases inB, -- no premises
   },
-  case rule.neg : X ϕ notnot_in_X {
+  case neg : X ϕ notnot_in_X {
     subst inB,
     { calc lengthOfSet (insert ϕ (X.erase (~~ϕ)))
          ≤ lengthOfSet (X.erase (~~ϕ)) + lengthOf (ϕ) : by { apply lengthOf_insert_leq_plus, }
@@ -338,7 +252,7 @@ begin
      ... = lengthOfSet X : lengthRemove X (~~ϕ) notnot_in_X,
     },
   },
-  case rule.con : X ϕ ψ in_X {
+  case con : X ϕ ψ in_X {
     subst inB,
     apply gt.lt, -- TODO remove this and turn around calc proof
     { calc lengthOfSet X
@@ -351,7 +265,7 @@ begin
      ... ≥ lengthOf (insert ϕ (insert ψ (X.erase (ϕ⋏ψ)))) : by { simp, apply lengthOf_insert_leq_plus, },
     },
   },
-  case rule.nCo : X ϕ ψ in_X {
+  case nCo : X ϕ ψ in_X {
     cases inB, -- splitting rule!
     all_goals {
       subst inB,
@@ -373,7 +287,9 @@ begin
      ... = lengthOfSet X : lengthRemove X (~(ϕ⋏ψ)) in_X,
     },
   },
-  case rule.atm : X ϕ in_X {
+  -- TODO: separate proof that the modal rule decreases length!
+  /-
+  case atm : X ϕ in_X {
     subst inB,
     -- TODO: move some of these to top level lemmas
     have proj_form_lt : ∀ f g, some g = formProjection f → lengthOfFormula g < lengthOfFormula f, {
@@ -397,64 +313,134 @@ begin
      ... = lengthOfSet X : lengthRemove X (~□ϕ) in_X,
     }
   },
+  -/
 end
 
+-- Definition 8, page 14 (note: noLoc means this can be an open tableau, but has to be maximal)
+-- mixed with Definition 11 (with all PDL stuff missing for now)
+-- a local tableau from X
+-- alternative IDEA: inductive localTableau : finset formula → finset (finset formula) → Type
+--                   to say "from X to these diamond leafs"?
+inductive localTableau : finset formula → Type
+| byLocalRule { X B } (_ : localRule X B) (next : Π Y ∈ B, localTableau Y) : localTableau X
+| sim { X } : simple X → localTableau X
+
+open localTableau
+open localRule
+
+-- needed for endNodesOf
+instance localTableau_has_sizeof : has_sizeof (Σ X, localTableau X) := ⟨ λ ⟨X, T⟩, lengthOfSet X ⟩
+
+-- open end nodes of a given localTableau
+def endNodesOf : (Σ X, localTableau X) → finset (finset formula)
+| ⟨X, @byLocalRule _ B lr next⟩ :=
+  B.bUnion (λ (Y : finset formula), dite (Y ∈ B)
+    (λ (h : Y ∈ B),
+      have hyp : Y.sum lengthOfFormula < X.sum lengthOfFormula, by { apply rulesDecreaseLength lr, tauto, },
+      endNodesOf ⟨Y, next Y h⟩ )
+    (λ (h : Y ∉ B), ∅))
+| ⟨X, sim _              ⟩ := { X }
+
+-- mwah, should be the same as having no open end nodes!
+inductive isClosedLocalTableau : Π { X : finset formula }, localTableau X -> Prop
+| byLocalRule { X } { B } (r : localRule X B) (prev : Π Y ∈ B, localTableau Y) :
+    (∀ Y, Π H : Y ∈ B, isClosedLocalTableau (prev Y H)) → isClosedLocalTableau (localTableau.byLocalRule r prev)
+
+
+inductive tableau : finset formula → Type
+| loc {X} : (localTableau X) → tableau X
+| atm {X ϕ} (h : ~□ϕ ∈ X) : simple X → localTableau (projection X ∪ {~ϕ}) → tableau X -- NEW: must be simple!
+| openTab { X } : (¬ ∃ B (_ : localRule X B), true) → (¬∃ ϕ, ~□ϕ ∈ X) → tableau X -- no more moves ;-)
+
+-- approaches how to represent closed tableau:
+-- - inductive Prop and then subtype <<<<< currently using this.
+-- - inductive Type, then write conversion functions?
+--   inductive closedTableau : finset formula → Type -- might not be possible to do ∀ α :-(
+-- Definition 16, page 29
+inductive closedTableau : Π ( X : finset formula ), Type
+| loc { X } (lt : localTableau X) : (∀ Y ∈ endNodesOf ⟨X, lt⟩, ∀ ty : tableau Y, closedTableau X) → closedTableau X
+| atm { X ϕ } (h : ~□ϕ ∈ X) (s : simple X) (lt : localTableau (projection X ∪ {~ϕ})) : closedTableau X
+
+
+-- is this useful/needed?
+@[simp]
+def complexityOfTableau : (Σ (X : finset formula) , tableau X) → ℕ
+| (⟨X,_⟩) := complexityOfSet X
+
+inductive provable : formula → Prop
+| byTableau {φ : formula} : closedTableau { ~ φ } → provable φ
+
+-- Definition 17, page 30
+def inconsistent : finset formula → Prop
+| X := nonempty (closedTableau X)
+
+def consistent : finset formula → Prop
+| X := ¬ inconsistent X
+
+
+
 -- maybe this should be data and not Prop ? // → tableau α
-def existsTableauFor : ∀ N α, N = lengthOf α → ∃ _ : tableau α, true :=
+def existsTableauFor : ∀ N α, N = lengthOf α → ∃ _ : localTableau α, true :=
 begin
   intro N,
   apply nat.strong_induction_on N, -- TODO: only works in Prop?
   intros n IH α nDef,
-  have canApplyRule := em (¬ ∃ B (_ : rule α B), true),
+  have canApplyRule := em (¬ ∃ B (_ : localRule α B), true),
   cases canApplyRule,
   {
-    use tableau.stuck canApplyRule,
+    split,
+    apply localTableau.sim,
+    by_contradiction hyp,
+    have fop := notSimpleThenLocalRule hyp,
+    tauto,
+    tauto,
   },
   {
     simp at canApplyRule,
     cases canApplyRule with B r_exists,
     cases r_exists with r _hyp,
     cases r,
-    case rule.bot : _ h {
-      have t := (tableau.byRule (rule.bot h)) _, use t,
+    case bot : _ h {
+      have t := (localTableau.byLocalRule (localRule.bot h)) _, use t,
       intro beta, intro beta_in_empty, tauto,
     },
-    case rule.not : _ _ h {
-      have t := (tableau.byRule (rule.not h)) _, use t,
+    case not : _ _ h {
+      have t := (localTableau.byLocalRule (not h)) _, use t,
       intro beta, intro beta_in_empty, tauto,
     },
-    case rule.neg : _ f h {
-      have t := (tableau.byRule (rule.neg h)) _, use t,
+    case neg : _ f h {
+      have t := (localTableau.byLocalRule (neg h)) _, use t,
       intros beta beta_def,
-      have rDec := rulesDecreaseLength (rule.neg h) beta beta_def,
+      have rDec := rulesDecreaseLength (neg h) beta beta_def,
       subst nDef,
       specialize IH (lengthOf beta) rDec beta,
       simp at IH,
       choose t _true using IH,
       use t,
     },
-    case rule.con : _ f g h {
-      have t := tableau.byRule (rule.con h) _, use t,
+    case con : _ f g h {
+      have t := localTableau.byLocalRule (con h) _, use t,
       intros beta beta_def,
-      have rDec := rulesDecreaseLength (rule.con h) beta beta_def,
+      have rDec := rulesDecreaseLength (con h) beta beta_def,
       subst nDef,
       specialize IH (lengthOf beta) rDec beta,
       simp at IH,
       choose t _true using IH,
       use t,
     },
-    case rule.nCo : _ f g h {
-      have t := tableau.byRule (rule.nCo h) _, use t,
+    case nCo : _ f g h {
+      have t := localTableau.byLocalRule (nCo h) _, use t,
       intros beta beta_def,
-      have rDec := rulesDecreaseLength (rule.nCo h) beta beta_def,
+      have rDec := rulesDecreaseLength (nCo h) beta beta_def,
       subst nDef,
       specialize IH (lengthOf beta) rDec beta,
       simp at IH,
       choose t _true using IH,
       use t,
     },
-    case rule.atm : _ _ h {
-      have t := tableau.byRule (rule.atm h) _, use t,
+    /-
+    case atm : _ _ h {
+      have t := tableau.byRule (atm h) _, use t,
       intros beta beta_def,
       have rDec := rulesDecreaseLength (rule.atm h) beta beta_def,
       subst nDef,
@@ -463,10 +449,6 @@ begin
       choose t _true using IH,
       use t,
     },
+    -/
   }
 end
-
--- try these:
--- #print existsTableauFor
--- reduce
--- eval

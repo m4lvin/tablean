@@ -86,3 +86,7 @@ Following the enumeration by Borzechowski
 | Theorem 4 | Completeness                             | X   | done  | completeness     |
 | Def 23    | extended PDL tableaus                    |     |       |                  |
 
+
+## other ToDo
+
+- [ ] avoid α and β for formula sets (follow Borzechowski and use X for set)
