@@ -14,15 +14,14 @@ lemma ruleCompleteness {α : finset formula} { B : finset (finset formula) } :
   localRule α B → (∃ β ∈ B, setSatisfiable β) → setSatisfiable α :=
 begin
   intro r,
-  cases r with r r_is_local,
   cases r,
-  case rule.bot {
+  case localRule.bot {
     simp,
   },
-  case rule.not {
+  case localRule.not {
     simp,
   },
-  case rule.neg : a f notnotf_in_a {
+  case localRule.neg : a f notnotf_in_a {
     intro hyp,
     rcases hyp with ⟨ b, b_sat ⟩,
     unfold setSatisfiable at *,
@@ -52,7 +51,7 @@ begin
       simp at *,
     },
   },
-  case rule.con : a f g fandg_in_a {
+  case localRule.con : a f g fandg_in_a {
     intro hyp,
     rcases hyp with ⟨ b, b_sat ⟩,
     unfold setSatisfiable at *,
@@ -80,7 +79,7 @@ begin
       { apply w_sat_b, rw b_is_fga, simp, },
     },
   },
-  case rule.nCo : a f g not_fandg_in_a {
+  case localRule.nCo : a f g not_fandg_in_a {
     intro hyp,
     rcases hyp with ⟨ b, b_sat ⟩ ,
     unfold setSatisfiable at *,
@@ -123,9 +122,6 @@ begin
       },
     },
   },
-  case rule.atm : X f notboxf_in_X {
-    cases r_is_local, -- atm rule is not local!
-  },
 end
 
 -- Theorem 3, page 36
@@ -136,12 +132,12 @@ begin
   intro cons_Z0,
   unfold consistent at *,
   unfold inconsistent at *,
-  push_neg at cons_Z0,
+  --push_neg at cons_Z0,
   set N := lengthOfSet Z0,
   -- TODO: it would be much nicer if existsTableauFor were a function / data
   have t := existsTableauFor N Z0 (by {refl, }),
   cases t with T _,
-  specialize cons_Z0 T,
+  --specialize cons_Z0 T,
   -- TODO: given the non-closed (= open) tableau T, build the modelGraph ...
 
   -- induction T, -- is this a good idea??

@@ -321,21 +321,21 @@ begin
 end
 
 -- Each rule is sound and preserves satisfiability "downwards"
-lemma ruleSoundness {α : finset formula} { B : finset (finset formula) } :
-  rule α B → (setSatisfiable α → ∃ β ∈ B, setSatisfiable β) :=
+lemma localRuleSoundness {α : finset formula} { B : finset (finset formula) } :
+  localRule α B → (setSatisfiable α → ∃ β ∈ B, setSatisfiable β) :=
 begin
   intro r,
   intro a_sat,
   unfold setSatisfiable at a_sat,
   rcases a_sat with ⟨ W, M, w, w_sat_a ⟩,
   cases r,
-  case rule.bot : a bot_in_a {
+  case localRule.bot : a bot_in_a {
     by_contradiction,
     let w_sat_bot := w_sat_a ⊥ bot_in_a  ,
     unfold evaluate at w_sat_bot,
     exact w_sat_bot,
   },
-  case rule.not : a f hyp {
+  case localRule.not : a f hyp {
     by_contradiction,
     have w_sat_f : evaluate (M, w) f , {
       apply w_sat_a,
@@ -348,7 +348,7 @@ begin
     unfold evaluate at *,
     exact absurd w_sat_f w_sat_not_f,
   },
-  case rule.neg : a f hyp {
+  case localRule.neg : a f hyp {
     have w_sat_f : evaluate (M, w) f, {
       specialize w_sat_a (~~f) hyp,
       unfold evaluate at *,
@@ -372,7 +372,7 @@ begin
       exact g_in_a,
     },
   },
-  case rule.con : a f g hyp {
+  case localRule.con : a f g hyp {
     use ( (a \ {f ⋏ g}) ∪ { f, g } ),
     split,
     simp,
@@ -400,7 +400,7 @@ begin
       },
     },
   },
-  case rule.nCo : a f g notfandg_in_a {
+  case localRule.nCo : a f g notfandg_in_a {
     unfold setSatisfiable,
     simp,
     let w_sat_phi := w_sat_a (~(f⋏g)) notfandg_in_a,
@@ -442,46 +442,52 @@ begin
       },
     },
   },
-  case rule.atm : a f not_box_f_in_a {
-    use (projection a ∪ {~f}),
-    split,
-    simp,
-    -- get the other reachable world:
-    let w_sat_not_box_f := w_sat_a (~f.box) not_box_f_in_a,
-    unfold evaluate at w_sat_not_box_f,
-    simp at w_sat_not_box_f,
-    rcases w_sat_not_box_f with ⟨ v,  w_rel_v, v_not_sat_f ⟩,
-    -- show that the projection is satisfiable:
-    --unfold projection,
-    unfold setSatisfiable,
-    use [W, M, v],
-    intros phi phi_is_notf_or_boxphi_in_a,
-    simp only [union_singleton_is_insert, finset.mem_insert] at *,
-    cases phi_is_notf_or_boxphi_in_a with phi_is_notf boxphi_in_a,
-    { rw phi_is_notf,
-      unfold evaluate,
-      exact v_not_sat_f,
-    },
-    { rw proj at boxphi_in_a,
-      specialize w_sat_a phi.box boxphi_in_a,
-      unfold evaluate at w_sat_a,
-      exact w_sat_a v w_rel_v,
-    },
+end
+
+-- The critical roule is sound and preserves satisfiability "downwards".
+lemma atmSoundness {α : finset formula} {f} (not_box_f_in_a : ~□f ∈ α) :
+  simple α → setSatisfiable α → setSatisfiable (projection α ∪ {~f}) :=
+begin
+  intro s,
+  intro aSat,
+  unfold setSatisfiable at aSat,
+  rcases aSat with ⟨W, M, w, w_sat_a⟩,
+  split,
+  simp,
+  -- get the other reachable world:
+  let w_sat_not_box_f := w_sat_a (~f.box) not_box_f_in_a,
+  unfold evaluate at w_sat_not_box_f,
+  simp at w_sat_not_box_f,
+  rcases w_sat_not_box_f with ⟨ v,  w_rel_v, v_not_sat_f ⟩,
+  -- show that the projection is satisfiable:
+  use [M, v],
+  split,
+  { unfold evaluate,
+    exact v_not_sat_f,
+  },
+  intros phi phi_in_proj,
+  rw proj at phi_in_proj,
+  {
+    specialize w_sat_a phi.box _,
+    exact phi_in_proj,
+    unfold evaluate at w_sat_a,
+    exact w_sat_a v w_rel_v,
   },
 end
 
 lemma tableauThenNotSat : ∀ X, closedTableau X → ¬ setSatisfiable X :=
 begin
-  intro X,
-  intro closedtabl_X,
-  cases closedtabl_X with tabl_X tabl_X_is_closed,
-  induction tabl_X with a B rule_a_B children IH,
-  by_contradiction hyp,
-  let m := ruleSoundness rule_a_B hyp,
-  { cases tabl_X_is_closed,
-    finish,
+  intros X t,
+  induction t,
+  case loc: Y ltY next IH {
+    -- use localRuleSoundness !?
+    sorry,
   },
-  all_goals { cases tabl_X_is_closed, },
+  case atm: Y ϕ notBoxPhiInY Y_is_simple ltProYnPhi {
+    -- use atmSoundness !?
+    -- use Lemma1_simple_sat_iff_all_projections_sat !?
+    sorry,
+  },
 end
 
 -- Theorem 2, page 30
@@ -493,8 +499,8 @@ begin
   simp,
   unfold inconsistent,
   intro hyp,
-  cases hyp with t t_isClosed,
-  exact tableauThenNotSat X ⟨t, t_isClosed⟩,
+  cases hyp with t,
+  exact tableauThenNotSat X t,
 end
 
 lemma soundTableau : ∀ φ, provable φ → ¬ setSatisfiable {~φ} :=

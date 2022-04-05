@@ -332,6 +332,7 @@ open localRule
 instance localTableau_has_sizeof : has_sizeof (Σ X, localTableau X) := ⟨ λ ⟨X, T⟩, lengthOfSet X ⟩
 
 -- open end nodes of a given localTableau
+@[simp]
 def endNodesOf : (Σ X, localTableau X) → finset (finset formula)
 | ⟨X, @byLocalRule _ B lr next⟩ :=
   B.bUnion (λ (Y : finset formula), dite (Y ∈ B)
@@ -346,6 +347,7 @@ inductive isClosedLocalTableau : Π { X : finset formula }, localTableau X -> Pr
 | byLocalRule { X } { B } (r : localRule X B) (prev : Π Y ∈ B, localTableau Y) :
     (∀ Y, Π H : Y ∈ B, isClosedLocalTableau (prev Y H)) → isClosedLocalTableau (localTableau.byLocalRule r prev)
 
+-- TODO lemma: isClosedLocalTableau IFF endNodesOf = empty ??
 
 inductive tableau : finset formula → Type
 | loc {X} : (localTableau X) → tableau X
@@ -353,13 +355,13 @@ inductive tableau : finset formula → Type
 | openTab { X } : (¬ ∃ B (_ : localRule X B), true) → (¬∃ ϕ, ~□ϕ ∈ X) → tableau X -- no more moves ;-)
 
 -- approaches how to represent closed tableau:
--- - inductive Prop and then subtype <<<<< currently using this.
--- - inductive Type, then write conversion functions?
+-- - inductive Prop and subtype    <<< old way
+-- - inductive wtih less constructors, write conversion functions? <<<<< now using this.
 --   inductive closedTableau : finset formula → Type -- might not be possible to do ∀ α :-(
 -- Definition 16, page 29
 inductive closedTableau : Π ( X : finset formula ), Type
-| loc { X } (lt : localTableau X) : (∀ Y ∈ endNodesOf ⟨X, lt⟩, ∀ ty : tableau Y, closedTableau X) → closedTableau X
-| atm { X ϕ } (h : ~□ϕ ∈ X) (s : simple X) (lt : localTableau (projection X ∪ {~ϕ})) : closedTableau X
+| loc { X } (lt : localTableau X) : (∀ Y ∈ endNodesOf ⟨X, lt⟩, closedTableau Y) → closedTableau X
+| atm { X ϕ } (h : ~□ϕ ∈ X) : (simple X) → (localTableau (projection X ∪ {~ϕ})) → closedTableau X
 
 
 -- is this useful/needed?
