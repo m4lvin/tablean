@@ -30,12 +30,12 @@ Then clone this repository and run `leanproject build`.
 - [ ] Completeness
 - [ ] Interpolation
 
-Dependency overview:
+Module dependency overview:
 
 ![Dependency graph](./dependencies.svg)
 
 
-## ToDo list
+## Section 1 ToDo list
 
 Following the enumeration by Borzechowski
 
@@ -86,6 +86,39 @@ Following the enumeration by Borzechowski
 | Theorem 4 | Completeness                             | X   | done  | completeness     |
 | Def 23    | extended PDL tableaus                    |     |       |                  |
 
+## Section 1 dependency graph
+
+```mermaid
+graph TD
+    t3[Theorem 3: Model Existence]
+    l12[Lemma 12]
+    l11[Lemma 11]
+    l10[Lemma 10]
+    l9[Lemma 9]
+    t2[Theorem 2: Correctness]
+    l8[Lemma 8]
+    l7[Lemma 7]
+    l6[Lemma 6]
+    l5[Lemma 5]
+    l4[Lemma 4]
+    l3[Lemma 3]
+    l2[Lemma 2]
+    l1[Lemma 1]
+    c[Completeness]
+    t3 --> c
+    l12 --> t3
+    l11 --> l12
+    l10 --> t3
+    l9 --> c
+    t2 --> c
+    l8 --> t2
+    l7 --> l8
+    l4 --> l8
+    l4 --> l7
+    l4 --> l5
+    l3 --> l6
+    l2 --> l6
+```
 
 ## other ToDo
 
