@@ -23,13 +23,15 @@ def simpleForm : formula → Prop
 | (□ _)   := true
 | ~(□ _)  := true
 | _       := false
-def simple : finset formula → Prop := λ X, ∀ P ∈ X, simpleForm P
+def simple : finset formula → Prop
+| X := ∀ P ∈ X, simpleForm P
 -- Let X_A := { R | [A]R ∈ X }.
 @[simp]
 def formProjection : formula → option formula
 | (□f) := some f
 | _    := none
-def projection : finset formula → finset formula := finset.pimage (part.of_option ∘ formProjection)
+def projection : finset formula → finset formula
+| X := X.bUnion (λ x, (formProjection x).to_finset)
 
 -- #eval projection { ~p, □□q, □q }
 
@@ -218,7 +220,6 @@ apply finset.induction_on X,
     unfold projection,
     ext1 g,
     simp,
-    split, all_goals { finish, },
   },
   { calc (projection (insert f S)).sum lengthOfFormula
        = (projection (insert f S)).sum lengthOfFormula : refl _
@@ -356,9 +357,17 @@ lemma botNoEndNodes {X h n} : endNodesOf ⟨X, localTableau.byLocalRule (@localR
 @[simp]
 lemma notNoEndNodes {X h ϕ n} : endNodesOf ⟨X, localTableau.byLocalRule (@localRule.not X h ϕ) n⟩ = ∅ := by { unfold endNodesOf, simp, }
 
+@[simp]
+lemma setEndNodes {X B lr next} : endNodesOf ⟨X, @byLocalRule _ B lr next⟩ = B.attach.bUnion (λ ⟨Y,h⟩, endNodesOf ⟨Y, next Y h⟩) :=
+begin
+  simp,
+  ext1,
+  finish,
+end
+
 inductive tableau : finset formula → Type
 | loc {X} (lt : localTableau X) : (∀ Y ∈ endNodesOf ⟨X, lt⟩, tableau Y) → tableau X
-| atm {X ϕ} : ~□ϕ ∈ X → simple X → localTableau (projection X ∪ {~ϕ}) → tableau X
+| atm {X ϕ} : ~□ϕ ∈ X → simple X → tableau (projection X ∪ {~ϕ}) → tableau X
 | opn {X} : simple X → (¬∃ ϕ, ~□ϕ ∈ X) → tableau X
 
 -- approaches how to represent closed tableau:
@@ -368,7 +377,7 @@ inductive tableau : finset formula → Type
 -- Definition 16, page 29
 inductive closedTableau : Π ( X : finset formula ), Type
 | loc {X} (lt : localTableau X) : (∀ Y ∈ endNodesOf ⟨X, lt⟩, closedTableau Y) → closedTableau X
-| atm {X ϕ} : ~□ϕ ∈ X → simple X → (localTableau (projection X ∪ {~ϕ})) → closedTableau X
+| atm {X ϕ} : ~□ϕ ∈ X → simple X → (closedTableau (projection X ∪ {~ϕ})) → closedTableau X
 
 
 -- is this useful/needed?

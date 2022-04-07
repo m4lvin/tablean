@@ -92,14 +92,13 @@ begin
   -- show that this set is simple:
   { unfold simple, simp at *, tauto, },
   unfold projection,
-  dsimp at *,
-  -- change tableau ({~p, (p⋏·'q')}), -- blocked due to formProjection
+  apply closedTableau.loc,
+  rotate,
   -- con:
   apply localTableau.byLocalRule,
   apply @localRule.con _ p q,
-  simp only [exists_prop, part.mem_of_option, or_false, finset.mem_union, finset.mem_insert, finset.mem_pimage, finset.mem_singleton, option.mem_def] at *,
-  use □(p ⋏ q),
-  simp only [eq_self_iff_true, or_true, formProjection, and_self],
+  simp at *,
+  --simp only [eq_self_iff_true, or_true, formProjection, and_self],
   intros child childDef,
   simp only [finset.union_insert, finset.mem_singleton] at *,
   subst childDef,
@@ -108,6 +107,15 @@ begin
   apply @localRule.not _ p,
   finish,
   exact emptyTableau,
+  {  -- show that endNodesOf is empty
+    intros Y,
+    intro YisEndNode,
+    simp at *,
+    exfalso,
+    rcases YisEndNode with ⟨a,h,hyp⟩,
+    subst h,
+    sorry, -- time out ?! :-(
+},
 end
 
 
@@ -158,21 +166,27 @@ begin
     intro Yin,
     unfold endNodesOf at *,
     simp at *,
-    have Yis : Y = {r, ~□p, □(p ⋏ q)}, {
-    cases Yin with Y2 Yin,
+    -- rw setEndNodes at Yin,
+    have foo := classical.some_spec (classical.some_spec Yin),
 
--- TODO: why is this so messy here?
-cases Yin with Ydef Yin,
-subst Ydef,
-simp at *,
-cases Yin with YnotRbranch YnotnotBranch,
+    sorry,
+    -- have ∃ statement, but need to make data here!
+    /-
+    cases foo with Ydef Yin,
+    subst Ydef,
+    simp at *,
+    cases Yin with YnotRbranch YnotnotBranch,
 
-{ simp at YnotRbranch, exfalso, sorry, },
+    { simp at YnotRbranch, exfalso, sorry, },
 
-{ simp at YnotnotBranch, sorry, },
+    { simp at YnotnotBranch,
 
+      have Yis : Y = {r, ~□p, □(p ⋏ q)}, {
+        sorry,
+      },
+      subst Yis,
+      exact subTabForEx2,
     },
-    subst Yis,
-    exact subTabForEx2,
+    -/
   },
 end

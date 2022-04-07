@@ -481,12 +481,17 @@ begin
   induction t,
   case loc: Y ltY next IH {
     -- use localRuleSoundness !?
+    -- need localTableauAndTableauForEndNotesThenNotSat or something like that?
     sorry,
   },
   case atm: Y ϕ notBoxPhiInY Y_is_simple ltProYnPhi {
-    -- use atmSoundness !?
-    -- use Lemma1_simple_sat_iff_all_projections_sat !?
-    sorry,
+    rw Lemma1_simple_sat_iff_all_projections_sat Y_is_simple,
+    simp,
+    intro Ynotclosed,
+    use ϕ,
+    use notBoxPhiInY,
+    finish,
+    -- why did we not need atmSoundness here??
   },
 end
 
