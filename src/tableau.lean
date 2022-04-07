@@ -316,11 +316,15 @@ begin
   -/
 end
 
--- Definition 8, page 14 (note: noLoc means this can be an open tableau, but has to be maximal)
+-- NOTE: we actually need *four* tableau types:
+-- - localTableau
+-- - closedLocalTableau
+-- - tableau
+-- - closedTableau
+
+-- Definition 8, page 14
 -- mixed with Definition 11 (with all PDL stuff missing for now)
--- a local tableau from X
--- alternative IDEA: inductive localTableau : finset formula → finset (finset formula) → Type
---                   to say "from X to these diamond leafs"?
+-- a local tableau for X, must be maximal
 inductive localTableau : finset formula → Type
 | byLocalRule { X B } (_ : localRule X B) (next : Π Y ∈ B, localTableau Y) : localTableau X
 | sim { X } : simple X → localTableau X
@@ -329,30 +333,33 @@ open localTableau
 open localRule
 
 -- needed for endNodesOf
-instance localTableau_has_sizeof : has_sizeof (Σ X, localTableau X) := ⟨ λ ⟨X, T⟩, lengthOfSet X ⟩
+instance localTableau_has_sizeof : has_sizeof (Σ {X}, localTableau X) := ⟨ λ ⟨X, T⟩, lengthOfSet X ⟩
 
 -- open end nodes of a given localTableau
 @[simp]
 def endNodesOf : (Σ X, localTableau X) → finset (finset formula)
-| ⟨X, @byLocalRule _ B lr next⟩ :=
-  B.bUnion (λ (Y : finset formula), dite (Y ∈ B)
-    (λ (h : Y ∈ B),
-      have hyp : Y.sum lengthOfFormula < X.sum lengthOfFormula, by { apply rulesDecreaseLength lr, tauto, },
-      endNodesOf ⟨Y, next Y h⟩ )
-    (λ (h : Y ∉ B), ∅))
-| ⟨X, sim _              ⟩ := { X }
+| ⟨X, @byLocalRule _ B lr next⟩ := B.attach.bUnion (λ ⟨Y,h⟩, have lengthOfSet Y < lengthOfSet X := rulesDecreaseLength lr Y h, endNodesOf ⟨Y, next Y h⟩)
+| ⟨X, sim _                   ⟩ := { X }
+-- alternative, say directly which rules yield no end nodes:
+-- | ⟨X, @byLocalRule _ B (localRule.bot _) next⟩ := ∅
+-- | ⟨X, @byLocalRule _ B (localRule.not _) next⟩ := ∅
+-- | ⟨X, @byLocalRule _ B lr@(localRule.neg _) next⟩ :=
+--   B.attach.bUnion (λ ⟨Y,h⟩, have lengthOfSet Y < lengthOfSet X := rulesDecreaseLength lr Y h, endNodesOf ⟨Y, next Y h⟩)
+-- | ⟨X, @byLocalRule _ B lr@(localRule.con _) next⟩ :=
+--   B.attach.bUnion (λ ⟨Y,h⟩, have lengthOfSet Y < lengthOfSet X := rulesDecreaseLength lr Y h, endNodesOf ⟨Y, next Y h⟩)
+-- | ⟨X, @byLocalRule _ B lr@(localRule.nCo _) next⟩ :=
+--   B.attach.bUnion (λ ⟨Y,h⟩, have lengthOfSet Y < lengthOfSet X := rulesDecreaseLength lr Y h, endNodesOf ⟨Y, next Y h⟩)
 
--- mwah, should be the same as having no open end nodes!
-inductive isClosedLocalTableau : Π { X : finset formula }, localTableau X -> Prop
-| byLocalRule { X } { B } (r : localRule X B) (prev : Π Y ∈ B, localTableau Y) :
-    (∀ Y, Π H : Y ∈ B, isClosedLocalTableau (prev Y H)) → isClosedLocalTableau (localTableau.byLocalRule r prev)
+@[simp]
+lemma botNoEndNodes {X h n} : endNodesOf ⟨X, localTableau.byLocalRule (@localRule.bot X h) n⟩ = ∅ := by { unfold endNodesOf, simp, }
 
--- TODO lemma: isClosedLocalTableau IFF endNodesOf = empty ??
+@[simp]
+lemma notNoEndNodes {X h ϕ n} : endNodesOf ⟨X, localTableau.byLocalRule (@localRule.not X h ϕ) n⟩ = ∅ := by { unfold endNodesOf, simp, }
 
 inductive tableau : finset formula → Type
-| loc {X} : (localTableau X) → tableau X
-| atm {X ϕ} (h : ~□ϕ ∈ X) : simple X → localTableau (projection X ∪ {~ϕ}) → tableau X -- NEW: must be simple!
-| openTab { X } : (¬ ∃ B (_ : localRule X B), true) → (¬∃ ϕ, ~□ϕ ∈ X) → tableau X -- no more moves ;-)
+| loc {X} (lt : localTableau X) : (∀ Y ∈ endNodesOf ⟨X, lt⟩, tableau Y) → tableau X
+| atm {X ϕ} : ~□ϕ ∈ X → simple X → localTableau (projection X ∪ {~ϕ}) → tableau X
+| opn {X} : simple X → (¬∃ ϕ, ~□ϕ ∈ X) → tableau X
 
 -- approaches how to represent closed tableau:
 -- - inductive Prop and subtype    <<< old way
@@ -360,8 +367,8 @@ inductive tableau : finset formula → Type
 --   inductive closedTableau : finset formula → Type -- might not be possible to do ∀ α :-(
 -- Definition 16, page 29
 inductive closedTableau : Π ( X : finset formula ), Type
-| loc { X } (lt : localTableau X) : (∀ Y ∈ endNodesOf ⟨X, lt⟩, closedTableau Y) → closedTableau X
-| atm { X ϕ } (h : ~□ϕ ∈ X) : (simple X) → (localTableau (projection X ∪ {~ϕ})) → closedTableau X
+| loc {X} (lt : localTableau X) : (∀ Y ∈ endNodesOf ⟨X, lt⟩, closedTableau Y) → closedTableau X
+| atm {X ϕ} : ~□ϕ ∈ X → simple X → (localTableau (projection X ∪ {~ϕ})) → closedTableau X
 
 
 -- is this useful/needed?

@@ -15,11 +15,19 @@ begin
     rw finset.mem_singleton at inB,
     rw inB,
     apply (localTableau.byLocalRule (localRule.bot (finset.mem_singleton.mpr (refl ⊥)))),
-    tauto,
+    intros Y YinEmpty,
+    cases YinEmpty,
   },
-  { intros β inB,
+  { -- show that endNodesOf is empty
+    intros Y,
+    intro YisEndNode,
+    unfold endNodesOf at *,
     simp at *,
-    cases inB,
+    exfalso,
+    rcases YisEndNode with ⟨a,h,hyp⟩,
+    subst h,
+    simp at *,
+    cases hyp,
   },
 end
 
@@ -59,10 +67,19 @@ begin
     repeat { finish, },
     exact emptyTableau,
   },
-  { -- no simple end nodes:
-    intros β β_prop,
+  { -- show that endNodesOf is empty
+    intros Y,
+    intro YisEndNode,
+    unfold endNodesOf at *,
     simp at *,
-    cases β_prop,
+    exfalso,
+    rcases YisEndNode with ⟨a,h,hyp⟩,
+    subst h,
+    simp at *,
+    cases hyp,
+    cases hyp_h,
+    subst hyp_h_w,
+    finish,
   },
 end
 
@@ -117,6 +134,7 @@ begin
     simp only [finset.mem_insert, finset.mem_singleton] at b_in,
     change b = {r, ~□p, ~r} ∨
            b = {r, ~□p, ~~□(p⋏q)} at b_in,
+    -- Note: "cases b_in" does not work here!
     refine if h1 : b = {r, ~□p, ~r} then _ else if h2 : b = {r, ~□p, ~~□(p⋏q)} then _ else _,
     { rw h1, -- right branch
       let stuff : finset formula := { r, ~p.box, ~r},
@@ -137,14 +155,22 @@ begin
   },
   { -- tableau for the simple end nodes:
     intro Y,
-    intro YisEndNode,
+    intro Yin,
     unfold endNodesOf at *,
     simp at *,
     have Yis : Y = {r, ~□p, □(p ⋏ q)}, {
-      cases YisEndNode,
-      -- unfold endNodesOf at *,
-      sorry,
-      sorry,
+    cases Yin with Y2 Yin,
+
+-- TODO: why is this so messy here?
+cases Yin with Ydef Yin,
+subst Ydef,
+simp at *,
+cases Yin with YnotRbranch YnotnotBranch,
+
+{ simp at YnotRbranch, exfalso, sorry, },
+
+{ simp at YnotnotBranch, sorry, },
+
     },
     subst Yis,
     exact subTabForEx2,
