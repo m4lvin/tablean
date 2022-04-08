@@ -23,6 +23,21 @@ def simpleForm : formula → Prop
 | (□ _)   := true
 | ~(□ _)  := true
 | _       := false
+instance (ϕ) : decidable (simpleForm ϕ) := begin
+  cases ϕ,
+  case bottom: { apply decidable.is_true, tauto, },
+  case atom_prop: { apply decidable.is_true, tauto, },
+  case neg: { cases ϕ,
+    case bottom: { apply decidable.is_true, tauto, },
+    case atom_prop: { apply decidable.is_true, tauto, },
+    case neg: { apply decidable.is_false, tauto, },
+    case and: { apply decidable.is_false, tauto, },
+    case box: { apply decidable.is_true, tauto, },
+  },
+  case and: { apply decidable.is_false, tauto, },
+  case box: { apply decidable.is_true, tauto, },
+end
+@[derive decidable]
 def simple : finset formula → Prop
 | X := ∀ P ∈ X, simpleForm P
 -- Let X_A := { R | [A]R ∈ X }.
@@ -448,12 +463,27 @@ begin
   }
 end
 
-lemma endNodesAreSmaller {X Y ltX} : Y ∈ endNodesOf ⟨X,ltX⟩ → lengthOf Y < lengthOf X :=
+lemma endNodesOfLocalRuleAreSmaller {X Y B next lr} : Y ∈ endNodesOf ⟨X, (@localTableau.byLocalRule _ B lr next)⟩ → lengthOf Y < lengthOf X :=
 begin
-  intro YisEndNode,
-  induction ltX,
+  intros YisEndNode,
+  -- TODO: not sure this is the right approach or this lemma is even true ...
+  rw setEndNodes at YisEndNode,
+  simp at YisEndNode,
+  rcases YisEndNode with ⟨a,a_in_WS,Y_in_⟩,
+  have foo := localRulesDecreaseLength lr,
+  specialize foo a a_in_WS, -- gives lengthOf a < lengthOf X  but we wanted this about Y, not a
   sorry,
-  sorry, -- second case here could actually be false?!
+end
+
+instance has_diamond.decidable (X : finset formula) : decidable (∃ ϕ, ~□ϕ ∈ X) :=
+begin
+  refine if h : X = ∅ then _ else _,
+  -- empty set:
+  rw h,
+  simp, apply decidable.is_false, trivial,
+  -- at least one element:
+  -- how to do this with finset.induction or finset.induction_on ??
+  sorry,
 end
 
 -- maybe this should be data and not Prop ? // → tableau α
@@ -464,7 +494,6 @@ begin
   apply nat.strong_induction_on N,
   intros n IH,
   intros X nDef,
-  classical,
   refine if X_is_simple : simple X then (if has_diamond : (∃ ϕ, ~□ϕ ∈ X) then _ else _) else _,
   { -- simples and has diamonds, use atm:
     cases has_diamond with ϕ notBoxPhi_in_X,
@@ -472,11 +501,9 @@ begin
     use t,
     have rDec := atmRuleDecreasesLength notBoxPhi_in_X,
     subst nDef,
-    specialize IH (lengthOfSet (projection X ∪ {~ϕ})),
-    simp at IH,
-    unfold lengthOfSet at rDec,
-    -- rw IH rDec, -- fails: formula.decidable VS. _inst (@eq formula ...) ???
-    sorry,
+    specialize IH (lengthOfSet (projection X ∪ {~ϕ})) rDec _ (refl _),
+    choose t _true using IH,
+    exact t,
   },
   { -- simple but no diamonds, use opn:
     constructor,
@@ -495,11 +522,15 @@ begin
     { intros Y YisEndNode,
       -- endNodes, use IH here!
       subst nDef,
-      specialize IH (lengthOf Y) (endNodesAreSmaller YisEndNode) Y,
+      cases ltX,
+      -- localRule case:
+      specialize IH (lengthOf Y) (endNodesOfLocalRuleAreSmaller YisEndNode) Y,
       unfold lengthOf at IH,
       simp at IH,
       choose t _true using IH,
       use t,
+      -- cannot be in sim case because X is simple:
+      tauto,
     },
   },
 end
