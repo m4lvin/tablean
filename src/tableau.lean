@@ -255,15 +255,13 @@ begin
   },
   case con : X ϕ ψ in_X {
     subst inB,
-    apply gt.lt, -- TODO remove this and turn around calc proof
-    { calc lengthOfSet X
-         = lengthOf (X.erase (ϕ⋏ψ)) + lengthOf (ϕ⋏ψ) : (lengthRemove X (ϕ⋏ψ) in_X).symm
-     ... = lengthOf (X.erase (ϕ⋏ψ)) + lengthOf ϕ + lengthOf ψ + 1 :
-           by { unfold lengthOf, unfold lengthOfFormula, ring, }
-     ... > lengthOf (X.erase (ϕ⋏ψ)) + lengthOf ϕ + lengthOf ψ : by { unfold lengthOf, simp, }
-     ... = lengthOf (X.erase (ϕ⋏ψ)) + lengthOf ψ + lengthOf ϕ : by { ring, }
-     ... ≥ lengthOf (insert ψ (X.erase (ϕ⋏ψ))) + lengthOf ϕ : by { simp, apply lengthOf_insert_leq_plus, }
-     ... ≥ lengthOf (insert ϕ (insert ψ (X.erase (ϕ⋏ψ)))) : by { simp, apply lengthOf_insert_leq_plus, },
+    { calc lengthOf (insert ϕ (insert ψ (X.erase (ϕ⋏ψ))))
+         ≤ lengthOf (insert ψ (X.erase (ϕ⋏ψ))) + lengthOf ϕ : by { apply lengthOf_insert_leq_plus, }
+     ... ≤ lengthOf (X.erase (ϕ⋏ψ)) + lengthOf ψ + lengthOf ϕ : by { simp, apply lengthOf_insert_leq_plus, }
+     ... = lengthOf (X.erase (ϕ⋏ψ)) + lengthOf ϕ + lengthOf ψ : by { ring, }
+     ... < lengthOf (X.erase (ϕ⋏ψ)) + lengthOf ϕ + lengthOf ψ + 1 : by { unfold lengthOf, simp, }
+     ... = lengthOf (X.erase (ϕ⋏ψ)) + lengthOf (ϕ⋏ψ) : by { unfold lengthOf, unfold lengthOfFormula, ring, }
+     ... = lengthOfSet X : (lengthRemove X (ϕ⋏ψ) in_X)
     },
   },
   case nCo : X ϕ ψ in_X {
