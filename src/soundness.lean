@@ -445,6 +445,7 @@ begin
 end
 
 -- The critical roule is sound and preserves satisfiability "downwards".
+-- TODO: is this the same as (one of the directions of) Lemma 1 ??
 lemma atmSoundness {α : finset formula} {f} (not_box_f_in_a : ~□f ∈ α) :
   simple α → setSatisfiable α → setSatisfiable (projection α ∪ {~f}) :=
 begin
@@ -475,14 +476,40 @@ begin
   },
 end
 
+lemma localTableauAndEndNodesUnsatThenNOtSat {Z} (ltZ : localTableau Z) :
+  (Π (Y), Y ∈ endNodesOf ⟨Z, ltZ⟩ → ¬ setSatisfiable Y) → ¬setSatisfiable Z :=
+begin
+  intro endsOfXnotSat,
+  induction ltZ,
+  case byLocalRule : X YS lr next IH {
+    by_contradiction satX,
+    rcases localRuleSoundness lr satX with ⟨Y,Y_in_YS,satY⟩,
+    specialize IH Y Y_in_YS,
+    set ltY := next Y Y_in_YS,
+    have endNodesInclusion : ∀ W, W ∈ endNodesOf ⟨Y, ltY⟩ → W ∈ endNodesOf ⟨X, localTableau.byLocalRule lr next⟩ , {
+      finish,
+    },
+    have endsOfYnotSat : (∀ (Y_1 : finset formula), Y_1 ∈ endNodesOf ⟨Y, ltY⟩ → ¬setSatisfiable Y_1), {
+      intros W W_is_endOf_Y,
+      apply endsOfXnotSat W (endNodesInclusion W W_is_endOf_Y),
+    },
+    finish,
+  },
+  case sim : X X_is_simple {
+    apply endsOfXnotSat,
+    unfold endNodesOf,
+    simp,
+  },
+end
+
 lemma tableauThenNotSat : ∀ X, closedTableau X → ¬ setSatisfiable X :=
 begin
   intros X t,
   induction t,
   case loc: Y ltY next IH {
-    -- use localRuleSoundness !?
-    -- need localTableauAndTableauForEndNotesThenNotSat or something like that?
-    sorry,
+    apply localTableauAndEndNodesUnsatThenNOtSat ltY,
+    intros Z ZisEndOfY,
+    exact IH Z ZisEndOfY,
   },
   case atm: Y ϕ notBoxPhiInY Y_is_simple ltProYnPhi {
     rw Lemma1_simple_sat_iff_all_projections_sat Y_is_simple,
@@ -491,7 +518,6 @@ begin
     use ϕ,
     use notBoxPhiInY,
     finish,
-    -- why did we not need atmSoundness here??
   },
 end
 
