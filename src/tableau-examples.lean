@@ -62,23 +62,19 @@ begin
     simp at β2_prop,
     subst β2_prop,
     -- closed:
-    apply localTableau.byLocalRule,
-    apply localRule.not,
-    repeat { finish, },
-    exact emptyTableau,
+    apply localTableau.byLocalRule (@localRule.not _ p _) emptyTableau,
+    exact dec_trivial,
   },
   { -- show that endNodesOf is empty
     intros Y,
     intro YisEndNode,
-    unfold endNodesOf at *,
     simp at *,
     exfalso,
     rcases YisEndNode with ⟨a,h,hyp⟩,
     subst h,
     simp at *,
-    cases hyp,
-    cases hyp_h,
-    subst hyp_h_w,
+    rcases hyp with ⟨Y,Ydef,YinEndNodes⟩,
+    subst Ydef,
     finish,
   },
 end
@@ -91,30 +87,30 @@ begin
   apply @closedTableau.atm {r, ~□p, □(p ⋏ q)} p (by {simp,}),
   -- show that this set is simple:
   { unfold simple, simp at *, tauto, },
-  unfold projection,
+  rw (by refl : (projection {r, ~□p, □(p⋏q)} ∪ {~p}) = {p⋏q, ~p} ),
   apply closedTableau.loc,
   rotate,
   -- con:
-  apply localTableau.byLocalRule,
-  apply @localRule.con _ p q,
-  simp at *,
-  --simp only [eq_self_iff_true, or_true, formProjection, and_self],
+  apply localTableau.byLocalRule (@localRule.con {p⋏q, ~p} p q (by {simp, })),
+  have foo : ({p⋏q, ~p} \ {p⋏q}) ∪ {p, q} = ({~p, p, q} : finset formula), {
+    simp, ext1, simp, split, tauto, finish,
+  },
+  rw foo,
   intros child childDef,
-  simp only [finset.union_insert, finset.mem_singleton] at *,
+  rw finset.mem_singleton at childDef,
   subst childDef,
   -- not:
-  apply localTableau.byLocalRule,
-  apply @localRule.not _ p,
-  finish,
-  exact emptyTableau,
+  apply localTableau.byLocalRule (@localRule.not _ p _) emptyTableau,
+  exact dec_trivial,
   {  -- show that endNodesOf is empty
     intros Y,
     intro YisEndNode,
     simp at *,
     exfalso,
-    rcases YisEndNode with ⟨a,h,hyp⟩,
-    subst h,
-    sorry, -- time out ?! :-(
+    rcases YisEndNode with ⟨a,aDef,hyp⟩,
+    subst aDef,
+    -- stuck with eq.rec here?
+    sorry,
 },
 end
 
