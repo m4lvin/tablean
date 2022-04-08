@@ -233,7 +233,7 @@ end
 
 open hasLength
 
-lemma rulesDecreaseLength { X : finset formula } { B : finset (finset formula) } (r : localRule X B) :
+lemma localRulesDecreaseLength { X : finset formula } { B : finset (finset formula) } (r : localRule X B) :
   ∀ Y ∈ B, lengthOfSet Y < lengthOfSet X :=
 begin
   cases r,
@@ -286,11 +286,13 @@ begin
      ... = lengthOfSet X : lengthRemove X (~(ϕ⋏ψ)) in_X,
     },
   },
-  -- TODO: separate proof that the modal rule decreases length!
-  /-
-  case atm : X ϕ in_X {
-    subst inB,
-    -- TODO: move some of these to top level lemmas
+end
+
+lemma atmRuleDecreasesLength { X : finset formula } { ϕ } :
+  ~□ϕ ∈ X → lengthOfSet (projection X ∪ {~ϕ}) < lengthOfSet X :=
+begin
+  intro notBoxPhi_in_X,
+  simp,
     have proj_form_lt : ∀ f g, some g = formProjection f → lengthOfFormula g < lengthOfFormula f, {
       intros f g g_is_fP_f, cases f, all_goals { finish, },
     },
@@ -309,15 +311,14 @@ begin
      ... = lengthOfSet (projection X) + lengthOf (~□ϕ) : by { unfold lengthOf, unfold lengthOfFormula, ring, }
      ... = lengthOfSet (projection (X.erase (~□ϕ))) + lengthOf (~□ϕ) : by { rw otherClaim, }
      ... ≤ lengthOfSet (X.erase (~□ϕ)) + lengthOf (~□ϕ) : by { simp, apply projection_set_length_leq, }
-     ... = lengthOfSet X : lengthRemove X (~□ϕ) in_X,
+     ... = lengthOfSet X : lengthRemove X (~□ϕ) notBoxPhi_in_X,
     }
-  },
-  -/
 end
+
 
 -- NOTE: we actually need *four* tableau types:
 -- - localTableau
--- - closedLocalTableau
+-- - closedLocalTableau  =  localTableau + closedTableau for all endNodesOf
 -- - tableau
 -- - closedTableau
 
@@ -337,17 +338,8 @@ instance localTableau_has_sizeof : has_sizeof (Σ {X}, localTableau X) := ⟨ λ
 -- open end nodes of a given localTableau
 @[simp]
 def endNodesOf : (Σ X, localTableau X) → finset (finset formula)
-| ⟨X, @byLocalRule _ B lr next⟩ := B.attach.bUnion (λ ⟨Y,h⟩, have lengthOfSet Y < lengthOfSet X := rulesDecreaseLength lr Y h, endNodesOf ⟨Y, next Y h⟩)
+| ⟨X, @byLocalRule _ B lr next⟩ := B.attach.bUnion (λ ⟨Y,h⟩, have lengthOfSet Y < lengthOfSet X := localRulesDecreaseLength lr Y h, endNodesOf ⟨Y, next Y h⟩)
 | ⟨X, sim _                   ⟩ := { X }
--- alternative, say directly which rules yield no end nodes:
--- | ⟨X, @byLocalRule _ B (localRule.bot _) next⟩ := ∅
--- | ⟨X, @byLocalRule _ B (localRule.not _) next⟩ := ∅
--- | ⟨X, @byLocalRule _ B lr@(localRule.neg _) next⟩ :=
---   B.attach.bUnion (λ ⟨Y,h⟩, have lengthOfSet Y < lengthOfSet X := rulesDecreaseLength lr Y h, endNodesOf ⟨Y, next Y h⟩)
--- | ⟨X, @byLocalRule _ B lr@(localRule.con _) next⟩ :=
---   B.attach.bUnion (λ ⟨Y,h⟩, have lengthOfSet Y < lengthOfSet X := rulesDecreaseLength lr Y h, endNodesOf ⟨Y, next Y h⟩)
--- | ⟨X, @byLocalRule _ B lr@(localRule.nCo _) next⟩ :=
---   B.attach.bUnion (λ ⟨Y,h⟩, have lengthOfSet Y < lengthOfSet X := rulesDecreaseLength lr Y h, endNodesOf ⟨Y, next Y h⟩)
 
 @[simp]
 lemma botNoEndNodes {X h n} : endNodesOf ⟨X, localTableau.byLocalRule (@localRule.bot X h) n⟩ = ∅ := by { unfold endNodesOf, simp, }
@@ -394,9 +386,8 @@ def consistent : finset formula → Prop
 | X := ¬ inconsistent X
 
 
-
 -- maybe this should be data and not Prop ? // → tableau α
-def existsTableauFor : ∀ N α, N = lengthOf α → ∃ _ : localTableau α, true :=
+def existsLocalTableauFor : ∀ N α, N = lengthOf α → ∃ _ : localTableau α, true :=
 begin
   intro N,
   apply nat.strong_induction_on N, -- TODO: only works in Prop?
@@ -427,7 +418,7 @@ begin
     case neg : _ f h {
       have t := (localTableau.byLocalRule (neg h)) _, use t,
       intros beta beta_def,
-      have rDec := rulesDecreaseLength (neg h) beta beta_def,
+      have rDec := localRulesDecreaseLength (neg h) beta beta_def,
       subst nDef,
       specialize IH (lengthOf beta) rDec beta,
       simp at IH,
@@ -437,7 +428,7 @@ begin
     case con : _ f g h {
       have t := localTableau.byLocalRule (con h) _, use t,
       intros beta beta_def,
-      have rDec := rulesDecreaseLength (con h) beta beta_def,
+      have rDec := localRulesDecreaseLength (con h) beta beta_def,
       subst nDef,
       specialize IH (lengthOf beta) rDec beta,
       simp at IH,
@@ -447,24 +438,68 @@ begin
     case nCo : _ f g h {
       have t := localTableau.byLocalRule (nCo h) _, use t,
       intros beta beta_def,
-      have rDec := rulesDecreaseLength (nCo h) beta beta_def,
+      have rDec := localRulesDecreaseLength (nCo h) beta beta_def,
       subst nDef,
       specialize IH (lengthOf beta) rDec beta,
       simp at IH,
       choose t _true using IH,
       use t,
     },
-    /-
-    case atm : _ _ h {
-      have t := tableau.byRule (atm h) _, use t,
-      intros beta beta_def,
-      have rDec := rulesDecreaseLength (rule.atm h) beta beta_def,
-      subst nDef,
-      specialize IH (lengthOf beta) rDec beta,
-      simp at IH,
-      choose t _true using IH,
-      use t,
-    },
-    -/
   }
+end
+
+lemma endNodesAreSmaller {X Y ltX} : Y ∈ endNodesOf ⟨X,ltX⟩ → lengthOf Y < lengthOf X :=
+begin
+  intro YisEndNode,
+  induction ltX,
+  sorry,
+  sorry, -- second case here could actually be false?!
+end
+
+-- maybe this should be data and not Prop ? // → tableau α
+def existsTableauFor : ∀ N X, N = lengthOf X → ∃ _ : tableau X, true :=
+begin
+  unfold lengthOf,
+  intros N,
+  apply nat.strong_induction_on N,
+  intros n IH,
+  intros X nDef,
+  classical,
+  refine if X_is_simple : simple X then (if has_diamond : (∃ ϕ, ~□ϕ ∈ X) then _ else _) else _,
+  { -- simples and has diamonds, use atm:
+    cases has_diamond with ϕ notBoxPhi_in_X,
+    have t := tableau.atm notBoxPhi_in_X X_is_simple _,
+    use t,
+    have rDec := atmRuleDecreasesLength notBoxPhi_in_X,
+    subst nDef,
+    specialize IH (lengthOfSet (projection X ∪ {~ϕ})),
+    simp at IH,
+    unfold lengthOfSet at rDec,
+    -- rw IH rDec, -- fails: formula.decidable VS. _inst (@eq formula ...) ???
+    sorry,
+  },
+  { -- simple but no diamonds, use opn:
+    constructor,
+    apply tableau.opn X_is_simple has_diamond,
+    trivial,
+  },
+  { -- not simple, use loc:
+    have haveLocTab := existsLocalTableauFor (lengthOf X) X,
+    simp at haveLocTab,
+    cases haveLocTab with ltX _,
+    constructor,
+    apply tableau.loc,
+    rotate,
+    { exact ltX, },
+    { trivial, },
+    { intros Y YisEndNode,
+      -- endNodes, use IH here!
+      subst nDef,
+      specialize IH (lengthOf Y) (endNodesAreSmaller YisEndNode) Y,
+      unfold lengthOf at IH,
+      simp at IH,
+      choose t _true using IH,
+      use t,
+    },
+  },
 end
