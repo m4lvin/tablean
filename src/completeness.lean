@@ -130,19 +130,36 @@ theorem model_existence { Z0 : finset formula } :
   consistent Z0 → ∃ W (μ : modelGraph W) (S ∈ W), Z0 ⊆ S :=
 begin
   intro cons_Z0,
-  unfold consistent at *,
-  unfold inconsistent at *,
-  --push_neg at cons_Z0,
+  -- unfold consistent at *,
+  -- unfold inconsistent at *,
+  -- push_neg at cons_Z0,
   set N := lengthOfSet Z0,
   -- TODO: it would be much nicer if existsTableauFor were a function / data
-  have t := existsTableauFor N Z0 (by {refl, }),
-  cases t with T _,
+  have existsLT := existsLocalTableauFor N Z0 (by {refl, }),
+  cases existsLT with T _,
+
+  let endNodes := endNodesOf ⟨Z0,T⟩,
+
   --specialize cons_Z0 T,
   -- TODO: given the non-closed (= open) tableau T, build the modelGraph ...
 
-  -- induction T, -- is this a good idea??
+  induction T, -- is this a good idea??
 
-  sorry,
+  case byLocalRule : X YS lr next IH {
+    -- need to build a model that satisfies X
+
+    have foo := ruleCompleteness lr,
+simp at foo,
+
+    sorry,
+  },
+  case sim : X X_is_simple {
+    unfold consistent at *,
+    unfold inconsistent at *,
+    simp at *,
+    -- have foo := Lemma1_simple_sat_iff_all_projections_sat X_is_simple, -- useful ??
+    sorry,
+  },
 end
 
 -- Theorem 4, page 37
