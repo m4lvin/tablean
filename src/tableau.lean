@@ -475,15 +475,14 @@ begin
   sorry,
 end
 
-instance has_diamond.decidable (X : finset formula) : decidable (∃ ϕ, ~□ϕ ∈ X) :=
+-- thanks to Mario Carneiro via Zulip!
+instance contains_diamond.decidable (X : finset formula) : decidable (∃ ϕ, ~□ϕ ∈ X) :=
 begin
-  refine if h : X = ∅ then _ else _,
-  -- empty set:
-  rw h,
-  simp, apply decidable.is_false, trivial,
-  -- at least one element:
-  -- how to do this with finset.induction or finset.induction_on ??
-  sorry,
+  haveI : ∀ X, decidable (∃ ϕ, X = (~□ ϕ)) := by
+    rintro (_ | _ | (_|_|_) | z);
+      { exact is_true ⟨_, rfl⟩ <|> { apply is_false, rintro ⟨_, ⟨⟩⟩ } },
+  exact decidable_of_iff (∃ f ∈ X, ∃ ϕ, f = ~□ϕ)
+    ⟨λ ⟨_, h, ϕ, rfl⟩, ⟨ϕ, h⟩, λ ⟨ϕ, h⟩, ⟨_, h, ϕ, rfl⟩⟩,
 end
 
 -- maybe this should be data and not Prop ? // → tableau α
