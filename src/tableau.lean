@@ -71,6 +71,14 @@ begin
   },
 end
 
+lemma projSet {X : finset formula} : ↑(projection X) = { ϕ | □ϕ ∈ X } :=
+begin
+  ext1,
+  unfold_coes,
+  simp,
+  exact proj,
+end
+
 -- -- IDEA: can we have a type were all its instances are tableau according to rules?
 -- -- (note that correct does not mean closed!!)
 -- from general to more demanding, which of these should the tableau data type represent?
