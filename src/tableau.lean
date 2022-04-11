@@ -401,7 +401,7 @@ def consistent : finset formula → Prop
 | X := ¬ inconsistent X
 
 
--- maybe this should be data and not Prop ? // → tableau α
+-- FIXME: should be data instead of Prop
 def existsLocalTableauFor : ∀ N α, N = lengthOf α → ∃ _ : localTableau α, true :=
 begin
   intro N,
@@ -463,16 +463,39 @@ begin
   }
 end
 
-lemma endNodesOfLocalRuleAreSmaller {X Y B next lr} : Y ∈ endNodesOf ⟨X, (@localTableau.byLocalRule _ B lr next)⟩ → lengthOf Y < lengthOf X :=
+lemma endNodesOfLEQ {X Z ltX} :
+  Z ∈ endNodesOf ⟨X, ltX⟩ → lengthOf Z ≤ lengthOf X :=
 begin
-  intros YisEndNode,
-  -- TODO: not sure this is the right approach or this lemma is even true ...
-  rw setEndNodes at YisEndNode,
-  simp at YisEndNode,
-  rcases YisEndNode with ⟨a,a_in_WS,Y_in_⟩,
-  have foo := localRulesDecreaseLength lr,
-  specialize foo a a_in_WS, -- gives lengthOf a < lengthOf X  but we wanted this about Y, not a
-  sorry,
+  induction ltX,
+  case byLocalRule : Y B lr next IH {
+    intro Z_endOf_Y,
+    have foo := localRulesDecreaseLength lr Y,
+    unfold endNodesOf at Z_endOf_Y,
+    simp at Z_endOf_Y,
+    rcases Z_endOf_Y with ⟨W, W_in_B, Z_endOf_W⟩,
+    apply le_of_lt,
+    { calc lengthOf Z
+         ≤ lengthOf W : IH W W_in_B Z_endOf_W
+     ... < lengthOf Y : localRulesDecreaseLength lr W W_in_B },
+  },
+  case sim : a b {
+    intro Z_endOf_Y,
+    unfold endNodesOf at Z_endOf_Y,
+    finish,
+  },
+end
+
+lemma endNodesOfLocalRuleLT {X Z B next lr} :
+  Z ∈ endNodesOf ⟨X, (@localTableau.byLocalRule _ B lr next)⟩ → lengthOf Z < lengthOf X :=
+begin
+  intros ZisEndNode,
+  rw setEndNodes at ZisEndNode,
+  simp only [finset.mem_bUnion, finset.mem_attach, exists_true_left, subtype.exists] at ZisEndNode,
+  rcases ZisEndNode with ⟨a,a_in_WS,Z_endOf_a⟩,
+  change Z ∈ endNodesOf ⟨a, next a a_in_WS⟩ at Z_endOf_a,
+  { calc lengthOf Z
+       ≤ lengthOf a : endNodesOfLEQ Z_endOf_a
+   ... < lengthOfSet X : localRulesDecreaseLength lr a a_in_WS },
 end
 
 -- thanks to Mario Carneiro via Zulip!
@@ -485,7 +508,7 @@ begin
     ⟨λ ⟨_, h, ϕ, rfl⟩, ⟨ϕ, h⟩, λ ⟨ϕ, h⟩, ⟨_, h, ϕ, rfl⟩⟩,
 end
 
--- maybe this should be data and not Prop ? // → tableau α
+-- FIXME: should be data instead of Prop
 def existsTableauFor : ∀ N X, N = lengthOf X → ∃ _ : tableau X, true :=
 begin
   unfold lengthOf,
@@ -523,7 +546,7 @@ begin
       subst nDef,
       cases ltX,
       -- localRule case:
-      specialize IH (lengthOf Y) (endNodesOfLocalRuleAreSmaller YisEndNode) Y,
+      specialize IH (lengthOf Y) (endNodesOfLocalRuleLT YisEndNode) Y,
       unfold lengthOf at IH,
       simp at IH,
       choose t _true using IH,
