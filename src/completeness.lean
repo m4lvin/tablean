@@ -124,6 +124,43 @@ begin
   },
 end
 
+-- build a world from a local Tableau, if possible
+def worldBuilder : (Σ X, localTableau X) → option Σ W, (kripkeModel W × W)
+| ⟨X, localTableau.byLocalRule (localRule.bot _) _⟩ := none -- closed
+| ⟨X, localTableau.byLocalRule (localRule.not _) _⟩ := none -- closed
+| ⟨X, @localTableau.byLocalRule _ B lr@(@localRule.neg _ ϕ notnotPhi_in_X) next⟩ :=
+begin
+  set Y := X \ {~~ϕ} ∪ {ϕ},
+  have fo := next Y (by { simp, }),
+  exact (
+     have lengthOfSet Y < lengthOfSet X := localRulesDecreaseLength (@localRule.neg X ϕ notnotPhi_in_X) Y (by {sorry}), -- TODO: fix well-foundedness!!!!
+     worldBuilder ⟨Y, fo⟩),
+end
+| ⟨X, @localTableau.byLocalRule _ B (@localRule.con _ ϕ ψ pnp_in_X) next⟩ :=
+begin
+  set Y:= X \ {ϕ⋏ψ} ∪ {ϕ, ψ},
+  have fo := next Y (by { simp, }),
+  exact (
+    have lengthOfSet Y < lengthOfSet X := localRulesDecreaseLength (@localRule.con _ ϕ ψ pnp_in_X) Y (by {sorry}), -- TODO: fix well-foundedness!!!!
+    worldBuilder ⟨Y, fo⟩),
+end
+| ⟨X, localTableau.byLocalRule (localRule.nCo _) next⟩ :=
+begin
+  -- TODO: choose the first of the two existing models?
+  exact none
+end
+| ⟨X, localTableau.sim simpleX⟩ :=
+begin
+  sorry, -- TODO build the actual valuation!!
+end
+
+-- build a model from a tableau, if possible
+def modelBuilder {X} : tableau X → option Σ W, (kripkeModel W × W)
+| (tableau.loc ltX next) := some (by { sorry })
+| (tableau.atm notBoxPhi_in_X simpleX tproj) := some (by { sorry })
+| (tableau.opn simpleX noDiamonds) := some (by { sorry })
+
+
 -- Theorem 3, page 36
 -- later TODO: add "normal Z0" constraint
 theorem model_existence { Z0 : finset formula } :
@@ -174,9 +211,8 @@ begin
     use W,
     -- use Lemma 9:
     have tL := truthLemma μ,
-    rcases μ with ⟨M, props⟩,
-    use M,
-    use ⟨S, S_in_W⟩,
+    rcases μ with ⟨M, _⟩,
+    use [M, ⟨S, S_in_W⟩],
     intros ϕ phi_in_X,
     apply tL,
     apply X_subseteq_S,
