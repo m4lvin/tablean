@@ -124,8 +124,9 @@ begin
   },
 end
 
--- build a world from a local Tableau, if possible
-def worldBuilder : (Σ X, localTableau X) → option Σ W, (kripkeModel W × W)
+-- build a modelgraph world from a local Tableau, if possible
+-- TODO: lemma or add here that "consistent X → some" ?
+def worldBuilder : (Σ X, localTableau X) → option (finset formula)
 | ⟨X, localTableau.byLocalRule (localRule.bot _) _⟩ := none -- closed
 | ⟨X, localTableau.byLocalRule (localRule.not _) _⟩ := none -- closed
 | ⟨X, @localTableau.byLocalRule _ B lr@(@localRule.neg _ ϕ notnotPhi_in_X) next⟩ :=
@@ -133,30 +134,61 @@ begin
   set Y := X \ {~~ϕ} ∪ {ϕ},
   have fo := next Y (by { simp, }),
   exact (
-     have lengthOfSet Y < lengthOfSet X := localRulesDecreaseLength (@localRule.neg X ϕ notnotPhi_in_X) Y (by {sorry}), -- TODO: fix well-foundedness!!!!
+     have lengthOfSet Y < lengthOfSet X := localRulesDecreaseLength (@localRule.neg X ϕ notnotPhi_in_X) Y (by {simp,ext1,simp,tauto,}),
      worldBuilder ⟨Y, fo⟩),
 end
 | ⟨X, @localTableau.byLocalRule _ B (@localRule.con _ ϕ ψ pnp_in_X) next⟩ :=
 begin
-  set Y:= X \ {ϕ⋏ψ} ∪ {ϕ, ψ},
-  have fo := next Y (by { simp, }),
+  set Y := X \ {ϕ⋏ψ} ∪ {ϕ, ψ},
+  have ltY := next Y (by { simp, }),
   exact (
-    have lengthOfSet Y < lengthOfSet X := localRulesDecreaseLength (@localRule.con _ ϕ ψ pnp_in_X) Y (by {sorry}), -- TODO: fix well-foundedness!!!!
-    worldBuilder ⟨Y, fo⟩),
+    have lengthOfSet Y < lengthOfSet X :=
+      localRulesDecreaseLength (localRule.con pnp_in_X) Y (by {simp,ext1,simp,tauto,}),
+    worldBuilder ⟨Y, ltY⟩),
 end
-| ⟨X, localTableau.byLocalRule (localRule.nCo _) next⟩ :=
+| ⟨X, localTableau.byLocalRule (@localRule.nCo _ ϕ ψ nCon_in_X) next⟩ :=
 begin
-  -- TODO: choose the first of the two existing models?
-  exact none
+  set Y1 := X \ {~(ϕ⋏ψ)} ∪ {~ϕ},
+  set Y2 := X \ {~(ϕ⋏ψ)} ∪ {~ψ},
+  have ltY1 := next Y1 (by { simp, }),
+  have ltY2 := next Y2 (by { simp, }),
+  let optWorld1 :=
+    have lengthOfSet Y1 < lengthOfSet X :=
+      localRulesDecreaseLength (localRule.nCo nCon_in_X) Y1 (by {simp,left,ext1,finish,}),
+    worldBuilder ⟨Y1, ltY1⟩,
+  let optWorld2 :=
+    have lengthOfSet Y2 < lengthOfSet X :=
+      localRulesDecreaseLength (localRule.nCo nCon_in_X) Y2 (by {simp,right,ext1,finish,}),
+    worldBuilder ⟨Y2, ltY2⟩,
+  -- choose the first world if there is one, otherwise the second result:
+  exact optWorld1.elim optWorld2 some,
 end
-| ⟨X, localTableau.sim simpleX⟩ :=
-begin
-  sorry, -- TODO build the actual valuation!!
-end
+| ⟨X, localTableau.sim simpleX⟩ := some X
 
 -- build a model from a tableau, if possible
 def modelBuilder {X} : tableau X → option Σ W, (kripkeModel W × W)
-| (tableau.loc ltX next) := some (by { sorry })
+| (tableau.loc ltX next) :=
+begin
+  set optW := worldBuilder ⟨X,ltX⟩,
+  refine dite optW.is_some _ (λ _, none),
+  intro w_is_some,
+  let w := option.get  w_is_some ,
+  apply some,
+  let nextWorlds := (endNodesOf ⟨X, ltX⟩),
+  split,
+  rotate,
+  -- TODO: define the set of worlds, for now singleton:
+  let worlds : finset (finset formula) := {w},
+  use worlds, -- TODO: also use nextWorlds here!
+  simp,
+  split,
+  split,
+  -- define valuation:
+  { intro v, intro ch, sorry }, -- exact (·ch ∈ v) -- ?? TODO
+  -- relation:
+  { intros v1 v2, sorry, },
+  sorry -- still need actual world here? why does "w" not work?
+end
 | (tableau.atm notBoxPhi_in_X simpleX tproj) := some (by { sorry })
 | (tableau.opn simpleX noDiamonds) := some (by { sorry })
 
