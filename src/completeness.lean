@@ -166,31 +166,40 @@ end
 | ⟨X, localTableau.sim simpleX⟩ := some X
 
 -- build a model from a tableau, if possible
-def modelBuilder {X} : tableau X → option Σ W, (kripkeModel W × W)
-| (tableau.loc ltX next) :=
+def modelBuilder : (Σ X, tableau X) → option Σ W, (kripkeModel W × W)
+| ⟨X, tableau.loc ltX next⟩ :=
 begin
   set optW := worldBuilder ⟨X,ltX⟩,
   refine dite optW.is_some _ (λ _, none),
   intro w_is_some,
   let w := option.get  w_is_some ,
   apply some,
-  let nextWorlds := (endNodesOf ⟨X, ltX⟩),
+  let ends := (endNodesOf ⟨X, ltX⟩),
+  let nextModels : endNodesOf ⟨X, ltX⟩ → option Σ W, (kripkeModel W × W) := by {
+    rintro ⟨Y, YinEnds⟩,
+    sorry,
+    -- exact (modelBuilder ⟨Y, next Y YinEnds⟩), -- well-foundedness problem!
+  },
+  split,
+  -- apply combinedModel nextModels, -- "option" in the way!?
+
+  -- different idea needed here!
+  -- NOPE: using combinedModel will not give us a modelgraph :-(
+  -- we should avoid () unit type worlds, but need finsets of formulas!
   split,
   rotate,
   -- TODO: define the set of worlds, for now singleton:
-  let worlds : finset (finset formula) := {w},
-  use worlds, -- TODO: also use nextWorlds here!
-  simp,
-  split,
+  use ({w} : finset (finset formula)), -- TODO: also use nextWorlds here!
   split,
   -- define valuation:
-  { intro v, intro ch, sorry }, -- exact (·ch ∈ v) -- ?? TODO
-  -- relation:
-  { intros v1 v2, sorry, },
-  sorry -- still need actual world here? why does "w" not work?
+  -- show_term { rintro ⟨v,_⟩ ch, exact (·ch) ∈ v,},
+  -- exact λ v_in_w ch, subtype.cases_on v_in_w (λ v _, (·ch) ∈ v),
+  -- relation: -- empty?
+  { intros v1 v2, exact false, },
+  sorry, -- still need actual world here? why does "w" not work?
 end
-| (tableau.atm notBoxPhi_in_X simpleX tproj) := some (by { sorry })
-| (tableau.opn simpleX noDiamonds) := some (by { sorry })
+| ⟨X, tableau.atm notBoxPhi_in_X simpleX tproj⟩ := some (by { sorry })
+| ⟨X, tableau.opn simpleX noDiamonds⟩ := some (by { sorry })
 
 
 -- Theorem 3, page 36
