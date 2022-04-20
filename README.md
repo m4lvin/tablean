@@ -75,11 +75,11 @@ Following the enumeration by Borzechowski
 | Def 17    | in/consistent                            | X   | -     | tableau          |
 | Theorem 2 | Correctness                              | X   | DONE  | soundness        |
 | Def 18    | saturated                                |     |       |                  |
-| Def 19    | model graph                              | ?   | ?     | modelgraphs      |
+| Def 19    | model graph                              | X   | -     | modelgraphs      |
 | Lemma 9   | truth lemma                              | X   | DONE  | modelgraphs      |
 | Def 20    | program relations between tableau nodes  |     |       |                  |
 | Lemma 10  | existence of free normal successors      |     |       |                  |
-| Lemma 11  | all ffns incons, then incons             |     |       |                  |
+| Lemma 11  | all ffns incons, then incons             | X   |       | completeness     |
 | Def 21    | X⁻ (remove markings) and lifted incons   |     |       |                  |
 | Def 22    | saturating tableau: (at) only on simple  |     |       |                  |
 | Theorem 3 | Model Existence                          | X   | todo! | completeness     |

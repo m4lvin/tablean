@@ -8,9 +8,9 @@ import modelgraphs
 
 -- Definition 20, page 34 -- TODO
 
--- Each rule is "complete", i.e. preserves satisfiability "upwards"
+-- Each local rule is "complete", i.e. preserves satisfiability "upwards"
 -- Fixme: only holds for LOCAL rules, not for the modal atm rule!
-lemma ruleCompleteness {α : finset formula} { B : finset (finset formula) } :
+lemma localRuleCompleteness {α : finset formula} { B : finset (finset formula) } :
   localRule α B → (∃ β ∈ B, setSatisfiable β) → setSatisfiable α :=
 begin
   intro r,
@@ -124,82 +124,146 @@ begin
   },
 end
 
--- build a modelgraph world from a local Tableau, if possible
--- TODO: lemma or add here that "consistent X → some" ?
-def worldBuilder : (Σ X, localTableau X) → option (finset formula)
-| ⟨X, localTableau.byLocalRule (localRule.bot _) _⟩ := none -- closed
-| ⟨X, localTableau.byLocalRule (localRule.not _) _⟩ := none -- closed
-| ⟨X, @localTableau.byLocalRule _ B lr@(@localRule.neg _ ϕ notnotPhi_in_X) next⟩ :=
+
+-- Lemma 11 (but rephrased to be about local tableau!?)
+lemma inconsUpwards {X} {ltX : localTableau X} : (Π en ∈ endNodesOf ⟨X, ltX⟩, inconsistent en) → inconsistent X :=
+begin
+  intro lhs,
+  unfold inconsistent at *,
+  let leafTableaus : Π en ∈ endNodesOf ⟨X, ltX⟩, closedTableau en := λ Y YinEnds, (lhs Y YinEnds).some,
+  split,
+  exact closedTableau.loc ltX leafTableaus,
+end
+
+-- Converse of Lemma 11
+lemma consToEndNodes {X} {ltX : localTableau X} : consistent X → (∃ en ∈ endNodesOf ⟨X, ltX⟩, consistent en) :=
+begin
+  intro consX,
+  unfold consistent at *,
+  have claim := not.imp consX (@inconsUpwards X ltX),
+  simp at claim,
+  tauto,
+end
+
+
+-- TODO: decidability via tableau, needed for worldBuilder(?)
+-- this first needs a lemma about the maximal size / that ther eare only finitely many tableaus for X!
+instance cons_dec {X} : decidable (consistent X) := sorry
+
+
+-- If X is consistent, build a world from a local Tableau for X.
+-- TODO: also return that this world satisfies X, or make this a lemma?
+def worldBuilder : Π X : finset formula, consistent X → localTableau X → finset formula
+| X consX (localTableau.byLocalRule (localRule.bot bot_in_X) noNexts) :=
+begin
+  exfalso,
+  have claim : nonempty (closedTableau X), {
+    fconstructor,
+    apply closedTableau.loc (localTableau.byLocalRule (localRule.bot bot_in_X) noNexts),
+    rw botNoEndNodes,
+    intros Y YinEmpty,
+    tauto,
+  },
+  tauto,
+end
+| X consx (localTableau.byLocalRule (localRule.not phinotphi_in_X) noNexts) :=
+begin
+  exfalso,
+  have claim : nonempty (closedTableau X), {
+    fconstructor,
+    apply closedTableau.loc (localTableau.byLocalRule (localRule.not phinotphi_in_X) noNexts),
+    rw notNoEndNodes,
+    intros Y YinEmpty,
+    tauto,
+  },
+  tauto,
+end
+| X consX (@localTableau.byLocalRule _ B (@localRule.neg _ ϕ notnotPhi_in_X) next) :=
 begin
   set Y := X \ {~~ϕ} ∪ {ϕ},
   have fo := next Y (by { simp, }),
+  have consY : consistent Y := sorry,
   exact (
      have lengthOfSet Y < lengthOfSet X := localRulesDecreaseLength (@localRule.neg X ϕ notnotPhi_in_X) Y (by {simp,ext1,simp,tauto,}),
-     worldBuilder ⟨Y, fo⟩),
+     worldBuilder Y consY fo),
 end
-| ⟨X, @localTableau.byLocalRule _ B (@localRule.con _ ϕ ψ pnp_in_X) next⟩ :=
+| X consX (@localTableau.byLocalRule _ B (@localRule.con _ ϕ ψ pnp_in_X) next) :=
 begin
   set Y := X \ {ϕ⋏ψ} ∪ {ϕ, ψ},
   have ltY := next Y (by { simp, }),
+
+  have consY : consistent Y := sorry,
   exact (
     have lengthOfSet Y < lengthOfSet X :=
       localRulesDecreaseLength (localRule.con pnp_in_X) Y (by {simp,ext1,simp,tauto,}),
-    worldBuilder ⟨Y, ltY⟩),
+    worldBuilder Y consY ltY),
 end
-| ⟨X, localTableau.byLocalRule (@localRule.nCo _ ϕ ψ nCon_in_X) next⟩ :=
+| X consX (localTableau.byLocalRule (@localRule.nCo _ ϕ ψ nCon_in_X) next) :=
 begin
   set Y1 := X \ {~(ϕ⋏ψ)} ∪ {~ϕ},
   set Y2 := X \ {~(ϕ⋏ψ)} ∪ {~ψ},
   have ltY1 := next Y1 (by { simp, }),
   have ltY2 := next Y2 (by { simp, }),
-  let optWorld1 :=
+  have consYsome : consistent Y1 ∨ consistent Y2 := sorry,
+  refine if consY1 : consistent Y1 then _ else _,
+  {
+  exact (
     have lengthOfSet Y1 < lengthOfSet X :=
       localRulesDecreaseLength (localRule.nCo nCon_in_X) Y1 (by {simp,left,ext1,finish,}),
-    worldBuilder ⟨Y1, ltY1⟩,
-  let optWorld2 :=
+    worldBuilder Y1 consY1 ltY1),
+  },
+  {
+  have consY2 : consistent Y2 := by {tauto,},
+  exact (
     have lengthOfSet Y2 < lengthOfSet X :=
       localRulesDecreaseLength (localRule.nCo nCon_in_X) Y2 (by {simp,right,ext1,finish,}),
-    worldBuilder ⟨Y2, ltY2⟩,
-  -- choose the first world if there is one, otherwise the second result:
-  exact optWorld1.elim optWorld2 some,
+    worldBuilder Y2 consY2 ltY2),
+  }
 end
-| ⟨X, localTableau.sim simpleX⟩ := some X
+| X consX (localTableau.sim simpleX) := X
+using_well_founded {rel_tac := λ _ _, `[exact ⟨_, measure_wf (λ ⟨X,_,_⟩, lengthOfSet X)⟩]}
+-- using_well_founded {rel_tac := sorry}
 
--- build a model from a tableau, if possible
-def modelBuilder : (Σ X, tableau X) → option Σ W, (kripkeModel W × W)
-| ⟨X, tableau.loc ltX next⟩ :=
+-- If X is consistent, build a model from a tableau for X.
+-- TODO: add that this model satisfies X, or make it a lemma? OR directly build a modelgraph?
+-- TODO: do we need induction on ltX here to avoid non-wellfoundedness?
+def modelBuilder : Π X, consistent X → tableau X → Σ W : finset (finset formula), (kripkeModel W × W)
+| X consX (tableau.loc ltX next) :=
 begin
-  set optW := worldBuilder ⟨X,ltX⟩,
-  refine dite optW.is_some _ (λ _, none),
-  intro w_is_some,
-  let w := option.get  w_is_some ,
-  apply some,
+  set w := worldBuilder X consX ltX,
   let ends := (endNodesOf ⟨X, ltX⟩),
-  let nextModels : endNodesOf ⟨X, ltX⟩ → option Σ W, (kripkeModel W × W) := by {
+  let nextModels : endNodesOf ⟨X, ltX⟩ → Σ W : finset (finset formula), (kripkeModel W × W) := by {
     rintro ⟨Y, YinEnds⟩,
-    sorry,
-    -- exact (modelBuilder ⟨Y, next Y YinEnds⟩), -- well-foundedness problem!
+    have consY := sorry,
+    exact (
+      have lengthOfSet Y < lengthOfSet X := sorry,  -- well-foundedness problem!
+      modelBuilder Y consY (next Y YinEnds)
+    ),
   },
   split,
-  -- apply combinedModel nextModels, -- "option" in the way!?
-
-  -- different idea needed here!
+  -- "combinedModel nextModels" is not good here!
   -- NOPE: using combinedModel will not give us a modelgraph :-(
   -- we should avoid () unit type worlds, but need finsets of formulas!
   split,
-  rotate,
-  -- TODO: define the set of worlds, for now singleton:
-  use ({w} : finset (finset formula)), -- TODO: also use nextWorlds here!
   split,
   -- define valuation:
-  -- show_term { rintro ⟨v,_⟩ ch, exact (·ch) ∈ v,},
+  { rintro ⟨v,_⟩ ch, exact (·ch) ∈ v,},
   -- exact λ v_in_w ch, subtype.cases_on v_in_w (λ v _, (·ch) ∈ v),
   -- relation: -- empty?
   { intros v1 v2, exact false, },
-  sorry, -- still need actual world here? why does "w" not work?
+  rotate,
+  use {w}, -- TODO: the set of worlds, for now singleton which is wrong!
+  use w,
+  simp,
 end
-| ⟨X, tableau.atm notBoxPhi_in_X simpleX tproj⟩ := some (by { sorry })
-| ⟨X, tableau.opn simpleX noDiamonds⟩ := some (by { sorry })
+| X consX (tableau.atm notBoxPhi_in_X simpleX tproj) := sorry
+| X consX (tableau.opn simpleX noDiamonds) := sorry
+using_well_founded {rel_tac := λ _ _, `[exact ⟨_, measure_wf (λ ⟨X,_⟩, lengthOfSet X)⟩]}
+
+
+-- use Lemma1_simple_sat_iff_all_projections_sat ??
+
+-- use localRuleCompleteness ??
 
 
 -- Theorem 3, page 36
@@ -208,36 +272,13 @@ theorem model_existence { Z0 : finset formula } :
   consistent Z0 → ∃ W (μ : modelGraph W) (S ∈ W), Z0 ⊆ S :=
 begin
   intro cons_Z0,
-  -- unfold consistent at *,
-  -- unfold inconsistent at *,
-  -- push_neg at cons_Z0,
   set N := lengthOfSet Z0,
-  -- TODO: it would be much nicer if existsTableauFor were a function / data
-  have existsLT := existsLocalTableauFor N Z0 (by {refl, }),
-  cases existsLT with T _,
-
-  let endNodes := endNodesOf ⟨Z0,T⟩,
-
-  --specialize cons_Z0 T,
-  -- TODO: given the non-closed (= open) tableau T, build the modelGraph ...
-
-  induction T, -- is this a good idea??
-
-  case byLocalRule : X YS lr next IH {
-    -- need to build a model that satisfies X
-
-    have foo := ruleCompleteness lr,
-simp at foo,
-
-    sorry,
-  },
-  case sim : X X_is_simple {
-    unfold consistent at *,
-    unfold inconsistent at *,
-    simp at *,
-    -- have foo := Lemma1_simple_sat_iff_all_projections_sat X_is_simple, -- useful ??
-    sorry,
-  },
+  have existsT := existsTableauFor N Z0 (by {refl, }),
+  cases existsT with T _,
+  let M := modelBuilder Z0 cons_Z0 T,
+  -- BIG TODO: show that modelBuilder gives a modelGraph !!
+  simp at *,
+  sorry,
 end
 
 -- Theorem 4, page 37
