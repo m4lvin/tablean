@@ -5,9 +5,6 @@ import tableau
 import soundness
 import modelgraphs
 
-
--- Definition 20, page 34 -- TODO
-
 -- Each local rule is "complete", i.e. preserves satisfiability "upwards"
 lemma localRuleCompleteness {α : finset formula} { B : finset (finset formula) } :
   localRule α B → (∃ β ∈ B, setSatisfiable β) → setSatisfiable α :=
@@ -159,8 +156,6 @@ begin
   cases consX, tauto,
 end
 
-
--- note: removed (notSimpX : ¬ simple X) premise
 lemma locTabEndSatThenSat {X Y} (ltX : localTableau X) (Y_endOf_X : Y ∈ endNodesOf ⟨X, ltX⟩) :
   setSatisfiable Y → setSatisfiable X :=
 begin
@@ -222,8 +217,7 @@ begin
   },
 end
 
-
-lemma simpSat : Π n X, lengthOfSet X = n → consistent X → setSatisfiable X :=
+lemma almostCompleteness : Π n X, lengthOfSet X = n → consistent X → setSatisfiable X :=
 begin
   intro n,
   apply nat.strong_induction_on n,
@@ -279,10 +273,6 @@ begin
     simp at h,
     exact classical.some h,
   },
-
-  -- local approach seems wrong here!
-  -- apply localRuleCompleteness lr,
-
   rcases @consToEndNodes X (localTableau.byLocalRule lr rest) consX with ⟨E, E_endOf_X, consE⟩,
   have satE : setSatisfiable E, {
     apply IH (lengthOfSet E),
@@ -296,158 +286,14 @@ begin
   exact locTabEndSatThenSat (localTableau.byLocalRule lr rest) E_endOf_X satE,
 end
 
-
-
--- TODO: decidability via tableau, needed for worldBuilder(?)
--- this first needs a lemma about the maximal size / that ther eare only finitely many tableaus for X!
-instance cons_dec {X} : decidable (consistent X) := sorry
-
-
--- If X is consistent, build a world from a local Tableau for X.
--- TODO: also return that this world satisfies X, or make this a lemma?
-def worldBuilder : Π X, consistent X → localTableau X → finset formula
-| X consX (localTableau.byLocalRule (localRule.bot bot_in_X) noNexts) :=
-begin
-  exfalso,
-  have claim : nonempty (closedTableau X), {
-    fconstructor,
-    apply closedTableau.loc (localTableau.byLocalRule (localRule.bot bot_in_X) noNexts),
-    rw botNoEndNodes,
-    intros Y YinEmpty,
-    tauto,
-  },
-  tauto,
-end
-| X consx (localTableau.byLocalRule (localRule.not phinotphi_in_X) noNexts) :=
-begin
-  exfalso,
-  have claim : nonempty (closedTableau X), {
-    fconstructor,
-    apply closedTableau.loc (localTableau.byLocalRule (localRule.not phinotphi_in_X) noNexts),
-    rw notNoEndNodes,
-    intros Y YinEmpty,
-    tauto,
-  },
-  tauto,
-end
-| X consX (@localTableau.byLocalRule _ B (@localRule.neg _ ϕ notnotPhi_in_X) next) :=
-begin
-  set Y := X \ {~~ϕ} ∪ {ϕ},
-  have fo := next Y (by { simp, }),
-  have consY : consistent Y := sorry,
-  exact (
-     have lengthOfSet Y < lengthOfSet X := localRulesDecreaseLength (@localRule.neg X ϕ notnotPhi_in_X) Y (by {simp,ext1,simp,tauto,}),
-     worldBuilder Y consY fo),
-end
-| X consX (@localTableau.byLocalRule _ B (@localRule.con _ ϕ ψ pnp_in_X) next) :=
-begin
-  set Y := X \ {ϕ⋏ψ} ∪ {ϕ, ψ},
-  have ltY := next Y (by { simp, }),
-
-  have consY : consistent Y := sorry,
-  exact (
-    have lengthOfSet Y < lengthOfSet X :=
-      localRulesDecreaseLength (localRule.con pnp_in_X) Y (by {simp,ext1,simp,tauto,}),
-    worldBuilder Y consY ltY),
-end
-| X consX (localTableau.byLocalRule (@localRule.nCo _ ϕ ψ nCon_in_X) next) :=
-begin
-  set Y1 := X \ {~(ϕ⋏ψ)} ∪ {~ϕ},
-  set Y2 := X \ {~(ϕ⋏ψ)} ∪ {~ψ},
-  have ltY1 := next Y1 (by { simp, }),
-  have ltY2 := next Y2 (by { simp, }),
-  have consYsome : consistent Y1 ∨ consistent Y2 := sorry,
-  refine if consY1 : consistent Y1 then _ else _,
-  {
-  exact (
-    have lengthOfSet Y1 < lengthOfSet X :=
-      localRulesDecreaseLength (localRule.nCo nCon_in_X) Y1 (by {simp,left,ext1,finish,}),
-    worldBuilder Y1 consY1 ltY1),
-  },
-  {
-  have consY2 : consistent Y2 := by {tauto,},
-  exact (
-    have lengthOfSet Y2 < lengthOfSet X :=
-      localRulesDecreaseLength (localRule.nCo nCon_in_X) Y2 (by {simp,right,ext1,finish,}),
-    worldBuilder Y2 consY2 ltY2),
-  }
-end
-| X consX (localTableau.sim simpleX) := X
-using_well_founded {rel_tac := λ _ _, `[exact ⟨_, measure_wf (λ ⟨X,_,_⟩, lengthOfSet X)⟩]}
--- using_well_founded {rel_tac := sorry}
-
--- If X is consistent, build a model from a tableau for X.
--- TODO: add that this model satisfies X, or make it a lemma? OR directly build a modelgraph?
--- TODO: do we need induction on ltX here to avoid non-wellfoundedness?
-def modelBuilder : Π X, consistent X → tableau X → Σ W : finset (finset formula), (kripkeModel W × W)
-| X consX (tableau.loc ltX next) :=
-begin
-  set w := worldBuilder X consX ltX,
-  let ends := (endNodesOf ⟨X, ltX⟩),
-  let nextModels : endNodesOf ⟨X, ltX⟩ → Σ W : finset (finset formula), (kripkeModel W × W) := by {
-    rintro ⟨Y, YinEnds⟩,
-    have consY := sorry,
-    exact (
-      have lengthOfSet Y < lengthOfSet X := sorry,  -- well-foundedness problem!
-      modelBuilder Y consY (next Y YinEnds)
-    ),
-  },
-  split,
-  -- "combinedModel nextModels" is not good here!
-  -- NOPE: using combinedModel will not give us a modelgraph :-(
-  -- we should avoid () unit type worlds, but need finsets of formulas!
-  split,
-  split,
-  -- define valuation:
-  { rintro ⟨v,_⟩ ch, exact (·ch) ∈ v,},
-  -- exact λ v_in_w ch, subtype.cases_on v_in_w (λ v _, (·ch) ∈ v),
-  -- relation: -- empty?
-  { intros v1 v2, exact false, },
-  rotate,
-  use {w}, -- TODO: the set of worlds, for now singleton which is wrong!
-  use w,
-  simp,
-end
-| X consX (tableau.atm notBoxPhi_in_X simpleX tproj) := sorry
-| X consX (tableau.opn simpleX noDiamonds) := sorry
-using_well_founded {rel_tac := λ _ _, `[exact ⟨_, measure_wf (λ ⟨X,_⟩, lengthOfSet X)⟩]}
-
-
--- use Lemma1_simple_sat_iff_all_projections_sat ??
-
--- Theorem 3, page 36
--- later TODO: add "normal Z0" constraint
-theorem model_existence { Z0 : finset formula } :
-  consistent Z0 → ∃ W (μ : modelGraph W) (S ∈ W), Z0 ⊆ S :=
-begin
-  intro cons_Z0,
-  set N := lengthOfSet Z0,
-  have existsT := existsTableauFor N Z0 (by {refl, }),
-  cases existsT with T _,
-  let M := modelBuilder Z0 cons_Z0 T,
-  -- BIG TODO: show that modelBuilder gives a modelGraph !!
-  simp at *,
-  sorry,
-end
-
 -- Theorem 4, page 37
 theorem completeness : ∀ X, consistent X ↔ setSatisfiable X :=
 begin
   intro X,
   split,
   { intro X_is_consistent,
-    -- Use Theorem 3:
-    rcases model_existence X_is_consistent with ⟨W, μ, S, S_in_W, X_subseteq_S⟩,
-    unfold setSatisfiable,
-    use W,
-    -- use Lemma 9:
-    have tL := truthLemma μ,
-    rcases μ with ⟨M, _⟩,
-    use [M, ⟨S, S_in_W⟩],
-    intros ϕ phi_in_X,
-    apply tL,
-    apply X_subseteq_S,
-    exact phi_in_X,
+    let n := lengthOfSet X,
+    apply almostCompleteness n X (by refl) X_is_consistent,
   },
   -- use Theorem 2:
   exact correctness X,
