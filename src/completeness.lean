@@ -145,6 +145,73 @@ begin
   tauto,
 end
 
+def projOfConsSimpIsCons : Π {X ϕ}, consistent X → simple X → ~□ϕ ∈ X → consistent (projection X ∪ {~ϕ}) :=
+begin
+  intros X ϕ consX simpX notBoxPhi_in_X,
+  unfold consistent at *,
+  unfold inconsistent at *,
+  by_contradiction h,
+  simp at *,
+  cases h with ctProj,
+  have ctX : closedTableau X, {
+    apply closedTableau.atm notBoxPhi_in_X simpX,
+    simp, exact ctProj,
+  },
+  cases consX, tauto,
+end
+
+
+def simpSat : Π n X, lengthOfSet X = n → consistent X → simple X → setSatisfiable X :=
+begin
+  intro n,
+  apply nat.strong_induction_on n,
+  intros n IH,
+  intros X lX_is_n consX simpX,
+  rw Lemma1_simple_sat_iff_all_projections_sat simpX,
+  split,
+  { -- show that X is not closed
+    by_contradiction h,
+    unfold consistent at consX,
+    unfold inconsistent at consX,
+    simp at consX,
+    cases consX, apply consX,
+    unfold closed at h,
+    refine if botInX : ⊥ ∈ X then _ else _,
+    { apply closedTableau.loc, rotate, apply localTableau.byLocalRule,
+      exact localRule.bot botInX,
+      intros Y YinEmpty, cases YinEmpty,
+      rw botNoEndNodes, intros Y YinEmpty, cases YinEmpty,
+    },
+    { have f1 : ∃ (f : formula) (H : f ∈ X), ~f ∈ X := by tauto,
+      have : nonempty (closedTableau X), {
+      rcases f1 with ⟨f, f_in_X, notf_in_X⟩,
+      fconstructor,
+      apply closedTableau.loc, rotate, apply localTableau.byLocalRule,
+      apply localRule.not ⟨f_in_X , notf_in_X⟩,
+      intros Y YinEmpty, cases YinEmpty,
+      rw notNoEndNodes, intros Y YinEmpty, cases YinEmpty,
+      },
+      exact classical.choice this,
+    },
+  },
+  { -- show that all projections are sat
+    intros R notBoxR_in_X,
+    apply IH (lengthOfSet (projection X ∪ {~R})), -- needs induction!
+    { -- projection decreases lengthOfSet
+      subst lX_is_n,
+      exact atmRuleDecreasesLength notBoxR_in_X,
+    },
+    { refl, },
+    {
+      exact projOfConsSimpIsCons consX simpX notBoxR_in_X,
+    },
+    { -- projection is simple!!! -- NOT TRUE !
+      sorry,
+    },
+  },
+end
+
+
 
 -- TODO: decidability via tableau, needed for worldBuilder(?)
 -- this first needs a lemma about the maximal size / that ther eare only finitely many tableaus for X!
@@ -153,7 +220,7 @@ instance cons_dec {X} : decidable (consistent X) := sorry
 
 -- If X is consistent, build a world from a local Tableau for X.
 -- TODO: also return that this world satisfies X, or make this a lemma?
-def worldBuilder : Π X : finset formula, consistent X → localTableau X → finset formula
+def worldBuilder : Π X, consistent X → localTableau X → finset formula
 | X consX (localTableau.byLocalRule (localRule.bot bot_in_X) noNexts) :=
 begin
   exfalso,
