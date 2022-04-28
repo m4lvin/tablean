@@ -9,7 +9,6 @@ import modelgraphs
 -- Definition 20, page 34 -- TODO
 
 -- Each local rule is "complete", i.e. preserves satisfiability "upwards"
--- Fixme: only holds for LOCAL rules, not for the modal atm rule!
 lemma localRuleCompleteness {α : finset formula} { B : finset (finset formula) } :
   localRule α B → (∃ β ∈ B, setSatisfiable β) → setSatisfiable α :=
 begin
@@ -161,12 +160,77 @@ begin
 end
 
 
-def simpSat : Π n X, lengthOfSet X = n → consistent X → simple X → setSatisfiable X :=
+-- note: removed (notSimpX : ¬ simple X) premise
+lemma locTabEndSatThenSat {X Y} (ltX : localTableau X) (Y_endOf_X : Y ∈ endNodesOf ⟨X, ltX⟩) :
+  setSatisfiable Y → setSatisfiable X :=
+begin
+  intro satY,
+  induction ltX,
+  case byLocalRule : X B lr next IH {
+    apply localRuleCompleteness lr,
+    cases lr,
+    case localRule.bot : W bot_in_W {
+      simp at *,
+      exact Y_endOf_X,
+    },
+    case localRule.not : _ ϕ h {
+      simp at *,
+      exact Y_endOf_X,
+    },
+    case localRule.neg : Z ϕ notNotPhi_inX {
+      simp at *,
+      specialize IH (insert ϕ (Z.erase (~~ϕ))),
+      simp at IH,
+      apply IH,
+      rcases Y_endOf_X with ⟨W, W_def, Y_endOf_W⟩,
+      subst W_def,
+      exact Y_endOf_W,
+    },
+    case localRule.con : Z ϕ ψ _ {
+      simp at *,
+      specialize IH (insert ϕ (insert ψ (Z.erase (ϕ⋏ψ)))),
+      simp at IH,
+      apply IH,
+      rcases Y_endOf_X with ⟨W, W_def, Y_endOf_W⟩,
+      subst W_def,
+      exact Y_endOf_W,
+    },
+    case localRule.nCo : Z ϕ ψ _ {
+      simp at *,
+      rcases Y_endOf_X with ⟨W, W_def, Y_endOf_W⟩,
+
+      cases W_def,
+      all_goals { subst W_def, },
+      { specialize IH (insert (~ϕ) (Z.erase (~(ϕ⋏ψ)))),
+        simp at IH,
+        use (insert (~ϕ) (Z.erase (~(ϕ⋏ψ)))),
+        split,
+        { left, refl, },
+        { apply IH, exact Y_endOf_W, }
+      },
+      { specialize IH (insert (~ψ) (Z.erase (~(ϕ⋏ψ)))),
+        simp at IH,
+        use (insert (~ψ) (Z.erase (~(ϕ⋏ψ)))),
+        split,
+        { right, refl, },
+        { apply IH, exact Y_endOf_W, }
+      },
+    },
+  },
+  case sim : X simpX {
+    finish,
+  },
+end
+
+
+lemma simpSat : Π n X, lengthOfSet X = n → consistent X → setSatisfiable X :=
 begin
   intro n,
   apply nat.strong_induction_on n,
   intros n IH,
-  intros X lX_is_n consX simpX,
+  intros X lX_is_n consX,
+  refine if simpX : simple X then _ else _,
+  -- CASE 1: X is simple
   rw Lemma1_simple_sat_iff_all_projections_sat simpX,
   split,
   { -- show that X is not closed
@@ -196,19 +260,40 @@ begin
   },
   { -- show that all projections are sat
     intros R notBoxR_in_X,
-    apply IH (lengthOfSet (projection X ∪ {~R})), -- needs induction!
+    apply IH (lengthOfSet (projection X ∪ {~R})),
     { -- projection decreases lengthOfSet
       subst lX_is_n,
       exact atmRuleDecreasesLength notBoxR_in_X,
     },
     { refl, },
-    {
-      exact projOfConsSimpIsCons consX simpX notBoxR_in_X,
-    },
-    { -- projection is simple!!! -- NOT TRUE !
-      sorry,
-    },
+    { exact projOfConsSimpIsCons consX simpX notBoxR_in_X, },
   },
+  -- CASE 2: X is not simple
+  rename simpX notSimpX,
+  have foo := notSimpleThenLocalRule notSimpX,
+  rcases foo with ⟨B,lr,_⟩,
+  have rest : Π (Y : finset formula), Y ∈ B → localTableau Y, {
+    intros Y Y_in_B,
+    set N := hasLength.lengthOf Y,
+    have h := existsLocalTableauFor N Y,
+    simp at h,
+    exact classical.some h,
+  },
+
+  -- local approach seems wrong here!
+  -- apply localRuleCompleteness lr,
+
+  rcases @consToEndNodes X (localTableau.byLocalRule lr rest) consX with ⟨E, E_endOf_X, consE⟩,
+  have satE : setSatisfiable E, {
+    apply IH (lengthOfSet E),
+    { -- end Node of local rule is LT
+      subst lX_is_n,
+      apply endNodesOfLocalRuleLT E_endOf_X,
+    },
+    { refl, },
+    { exact consE, },
+  },
+  exact locTabEndSatThenSat (localTableau.byLocalRule lr rest) E_endOf_X satE,
 end
 
 
@@ -329,9 +414,6 @@ using_well_founded {rel_tac := λ _ _, `[exact ⟨_, measure_wf (λ ⟨X,_⟩, l
 
 
 -- use Lemma1_simple_sat_iff_all_projections_sat ??
-
--- use localRuleCompleteness ??
-
 
 -- Theorem 3, page 36
 -- later TODO: add "normal Z0" constraint
