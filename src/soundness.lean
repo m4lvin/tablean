@@ -6,6 +6,8 @@ import tableau
 open classical
 local attribute [instance, priority 10] prop_decidable
 
+open has_sat
+
 -- Combine a collection of pointed models with one new world using the given valuation.
 -- TODO: rewrite to term mode?
 def combinedModel { β : Type } (collection : β → Σ (W : Type), kripkeModel W × W) (newVal : char → Prop) :
@@ -222,13 +224,13 @@ end
 -- A simple set of formulas X is satisfiable if and only if
 -- it is not closed  and  for all ¬[A]R ∈ X also XA; ¬R is satisfiable.
 lemma Lemma1_simple_sat_iff_all_projections_sat { X : finset formula } :
-  simple X → (setSatisfiable X ↔ (¬ closed X ∧ ∀ R, (~□R) ∈ X → setSatisfiable (projection X ∪ {~R}))) :=
+  simple X → (satisfiable X ↔ (¬ closed X ∧ ∀ R, (~□R) ∈ X → satisfiable (projection X ∪ {~R}))) :=
 begin
   intro X_is_simple,
   split,
   { -- left to right
     intro sat_X,
-    unfold setSatisfiable at *,
+    unfold satisfiable at *,
     rcases sat_X with ⟨ W, M, w, w_sat_X ⟩,
     split,
     { -- show that X is not closed:
@@ -274,8 +276,7 @@ begin
   { -- right to left
     intro rhs,
     cases rhs with not_closed_X all_pro_sat,
-    unfold setSatisfiable at all_pro_sat,
-    unfold setSatisfiable,
+    unfold satisfiable at *,
     -- Let's build a new Kripke model!
     let β := { R : formula | ~□R ∈ X },
     -- beware, using Axioms of Choice here!
@@ -322,11 +323,11 @@ end
 
 -- Each rule is sound and preserves satisfiability "downwards"
 lemma localRuleSoundness {α : finset formula} { B : finset (finset formula) } :
-  localRule α B → (setSatisfiable α → ∃ β ∈ B, setSatisfiable β) :=
+  localRule α B → (satisfiable α → ∃ β ∈ B, satisfiable β) :=
 begin
   intro r,
   intro a_sat,
-  unfold setSatisfiable at a_sat,
+  unfold satisfiable at a_sat,
   rcases a_sat with ⟨ W, M, w, w_sat_a ⟩,
   cases r,
   case localRule.bot : a bot_in_a {
@@ -356,7 +357,7 @@ begin
     },
     use (a \ {~~f} ∪ {f}),
     simp only [true_and, eq_self_iff_true, sdiff_singleton_is_erase, multiset.mem_singleton, finset.mem_mk],
-    unfold setSatisfiable,
+    unfold satisfiable,
     use [W, M, w],
     intro g,
     simp only [ne.def, union_singleton_is_insert, finset.mem_insert, finset.mem_erase],
@@ -376,7 +377,7 @@ begin
     use ( (a \ {f ⋏ g}) ∪ { f, g } ),
     split,
     simp,
-    unfold setSatisfiable,
+    unfold satisfiable,
     use [W, M, w],
     simp only [and_imp, forall_eq_or_imp, sdiff_singleton_is_erase, ne.def, finset.union_insert, finset.mem_insert, finset.mem_erase],
     split,
@@ -401,7 +402,7 @@ begin
     },
   },
   case localRule.nCo : a f g notfandg_in_a {
-    unfold setSatisfiable,
+    unfold satisfiable,
     simp,
     let w_sat_phi := w_sat_a (~(f⋏g)) notfandg_in_a,
     unfold evaluate at w_sat_phi,
@@ -447,11 +448,11 @@ end
 -- The critical roule is sound and preserves satisfiability "downwards".
 -- TODO: is this the same as (one of the directions of) Lemma 1 ??
 lemma atmSoundness {α : finset formula} {f} (not_box_f_in_a : ~□f ∈ α) :
-  simple α → setSatisfiable α → setSatisfiable (projection α ∪ {~f}) :=
+  simple α → satisfiable α → satisfiable (projection α ∪ {~f}) :=
 begin
   intro s,
   intro aSat,
-  unfold setSatisfiable at aSat,
+  unfold satisfiable at aSat,
   rcases aSat with ⟨W, M, w, w_sat_a⟩,
   split,
   simp,
@@ -477,7 +478,7 @@ begin
 end
 
 lemma localTableauAndEndNodesUnsatThenNOtSat {Z} (ltZ : localTableau Z) :
-  (Π (Y), Y ∈ endNodesOf ⟨Z, ltZ⟩ → ¬ setSatisfiable Y) → ¬setSatisfiable Z :=
+  (Π (Y), Y ∈ endNodesOf ⟨Z, ltZ⟩ → ¬ satisfiable Y) → ¬satisfiable Z :=
 begin
   intro endsOfXnotSat,
   induction ltZ,
@@ -489,7 +490,7 @@ begin
     have endNodesInclusion : ∀ W, W ∈ endNodesOf ⟨Y, ltY⟩ → W ∈ endNodesOf ⟨X, localTableau.byLocalRule lr next⟩ , {
       finish,
     },
-    have endsOfYnotSat : (∀ (Y_1 : finset formula), Y_1 ∈ endNodesOf ⟨Y, ltY⟩ → ¬setSatisfiable Y_1), {
+    have endsOfYnotSat : (∀ (Y_1 : finset formula), Y_1 ∈ endNodesOf ⟨Y, ltY⟩ → ¬ satisfiable Y_1), {
       intros W W_is_endOf_Y,
       apply endsOfXnotSat W (endNodesInclusion W W_is_endOf_Y),
     },
@@ -502,7 +503,7 @@ begin
   },
 end
 
-lemma tableauThenNotSat : ∀ X, closedTableau X → ¬ setSatisfiable X :=
+lemma tableauThenNotSat : ∀ X, closedTableau X → ¬ satisfiable X :=
 begin
   intros X t,
   induction t,
@@ -522,7 +523,7 @@ begin
 end
 
 -- Theorem 2, page 30
-theorem correctness : ∀ X, setSatisfiable X → consistent X :=
+theorem correctness : ∀ X, satisfiable X → consistent X :=
 begin
   intro X,
   contrapose,
@@ -534,7 +535,7 @@ begin
   exact tableauThenNotSat X t,
 end
 
-lemma soundTableau : ∀ φ, provable φ → ¬ setSatisfiable {~φ} :=
+lemma soundTableau : ∀ φ, provable φ → ¬ satisfiable ({~φ} : finset formula) :=
 begin
   intro phi,
   intro prov,
@@ -547,7 +548,7 @@ theorem soundness : ∀ φ, provable φ → tautology φ :=
 begin
   intros φ prov,
   apply notsatisfnotThenTaut,
-  rw sat_iff_singleton_sat,
+  rw ← singletonSat_iff_sat,
   apply soundTableau,
   exact prov,
 end

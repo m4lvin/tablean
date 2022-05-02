@@ -5,9 +5,11 @@ import tableau
 import soundness
 import modelgraphs
 
+open has_sat
+
 -- Each local rule is "complete", i.e. preserves satisfiability "upwards"
 lemma localRuleCompleteness {α : finset formula} { B : finset (finset formula) } :
-  localRule α B → (∃ β ∈ B, setSatisfiable β) → setSatisfiable α :=
+  localRule α B → (∃ β ∈ B, satisfiable β) → satisfiable α :=
 begin
   intro r,
   cases r,
@@ -20,7 +22,7 @@ begin
   case localRule.neg : a f notnotf_in_a {
     intro hyp,
     rcases hyp with ⟨ b, b_sat ⟩,
-    unfold setSatisfiable at *,
+    unfold satisfiable at *,
     simp at b_sat,
     rcases b_sat with ⟨ H, W, M, w, w_sat_b ⟩,
     use [W, M, w],
@@ -50,7 +52,7 @@ begin
   case localRule.con : a f g fandg_in_a {
     intro hyp,
     rcases hyp with ⟨ b, b_sat ⟩,
-    unfold setSatisfiable at *,
+    unfold satisfiable at *,
     rcases b_sat with ⟨ b_def, W, M, w, w_sat_b ⟩,
     use [W, M, w],
     intros phi phi_in_a,
@@ -78,7 +80,7 @@ begin
   case localRule.nCo : a f g not_fandg_in_a {
     intro hyp,
     rcases hyp with ⟨ b, b_sat ⟩ ,
-    unfold setSatisfiable at *,
+    unfold satisfiable at *,
     rcases b_sat with ⟨ b_def, W, M, w, w_sat_b ⟩,
     use [W, M, w],
     intros phi phi_in_a,
@@ -157,7 +159,7 @@ begin
 end
 
 lemma locTabEndSatThenSat {X Y} (ltX : localTableau X) (Y_endOf_X : Y ∈ endNodesOf ⟨X, ltX⟩) :
-  setSatisfiable Y → setSatisfiable X :=
+  satisfiable Y → satisfiable X :=
 begin
   intro satY,
   induction ltX,
@@ -193,7 +195,6 @@ begin
     case localRule.nCo : Z ϕ ψ _ {
       simp at *,
       rcases Y_endOf_X with ⟨W, W_def, Y_endOf_W⟩,
-
       cases W_def,
       all_goals { subst W_def, },
       { specialize IH (insert (~ϕ) (Z.erase (~(ϕ⋏ψ)))),
@@ -217,7 +218,7 @@ begin
   },
 end
 
-lemma almostCompleteness : Π n X, lengthOfSet X = n → consistent X → setSatisfiable X :=
+lemma almostCompleteness : Π n X, lengthOfSet X = n → consistent X → satisfiable X :=
 begin
   intro n,
   apply nat.strong_induction_on n,
@@ -274,7 +275,7 @@ begin
     exact classical.some h,
   },
   rcases @consToEndNodes X (localTableau.byLocalRule lr rest) consX with ⟨E, E_endOf_X, consE⟩,
-  have satE : setSatisfiable E, {
+  have satE : satisfiable E, {
     apply IH (lengthOfSet E),
     { -- end Node of local rule is LT
       subst lX_is_n,
@@ -287,7 +288,7 @@ begin
 end
 
 -- Theorem 4, page 37
-theorem completeness : ∀ X, consistent X ↔ setSatisfiable X :=
+theorem completeness : ∀ X, consistent X ↔ satisfiable X :=
 begin
   intro X,
   split,
@@ -302,28 +303,7 @@ end
 lemma singletonCompleteness : ∀ φ, consistent {φ} ↔ satisfiable φ :=
 begin
   intro f,
-  split,
-  {
-    intro cons_f,
-    rw completeness at cons_f,
-    unfold satisfiable,
-    unfold setSatisfiable at *,
-    rcases cons_f with ⟨W, M, w, sat_f⟩,
-    use [W, M, w],
-    specialize sat_f f,
-    finish,
-  },
-  {
-    intro sat_f,
-    have setSat : setSatisfiable {f}, {
-      unfold satisfiable at *,
-      unfold setSatisfiable at *,
-      rcases sat_f with ⟨W, M, w, sat_f⟩,
-      use [W, M, w],
-      simp,
-      exact sat_f,
-    },
-    rw ← completeness at setSat,
-    exact setSat,
-  },
+  have := completeness {f},
+  simp only [singletonSat_iff_sat] at *,
+  tauto,
 end

@@ -1,6 +1,8 @@
 import syntax
 import semantics
 
+open has_sat
+
 lemma mytaut1 (p : char) : tautology ((·p) ↣ (·p)) :=
 begin
   unfold tautology evaluate,

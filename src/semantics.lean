@@ -22,8 +22,12 @@ def tautology     (φ : formula) := ∀ W (M : kripkeModel W) w, evaluate (M,w) 
 def contradiction (φ : formula) := ∀ W (M : kripkeModel W) w, ¬ evaluate (M,w) φ
 
 -- Definition 4, page 8
-def satisfiable   (φ : formula) := ∃ W (M : kripkeModel W) w, evaluate (M,w) φ
-def setSatisfiable (X : finset formula) := ∃ W (M : kripkeModel W) w, (∀ φ ∈ X, evaluate (M,w) φ)
+
+-- Definition 5, page 9
+class has_sat (α : Type) := (satisfiable : α → Prop)
+open has_sat
+instance form_has_sat : has_sat formula := has_sat.mk (λ ϕ, ∃ W (M : kripkeModel W) w, evaluate (M,w) ϕ)
+instance set_has_sat : has_sat (finset formula) := has_sat.mk (λ X, ∃ W (M : kripkeModel W) w, (∀ φ ∈ X, evaluate (M,w) φ))
 
 lemma notsatisfnotThenTaut : ∀ φ, ¬ satisfiable (~φ) → tautology φ :=
 begin
@@ -39,11 +43,11 @@ begin
   exact lhs,
 end
 
-lemma sat_iff_singleton_sat : ∀ φ, satisfiable φ ↔ setSatisfiable { φ } :=
+@[simp]
+lemma singletonSat_iff_sat : ∀ (φ : formula), satisfiable ({ φ } : finset formula) ↔ satisfiable (φ : formula) :=
 begin
   intro phi,
   unfold satisfiable,
-  unfold setSatisfiable,
   simp,
 end
 
