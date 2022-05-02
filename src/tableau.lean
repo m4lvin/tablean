@@ -338,13 +338,6 @@ begin
     }
 end
 
-
--- NOTE: we actually need *four* tableau types:
--- - localTableau
--- - closedLocalTableau  =  localTableau + closedTableau for all endNodesOf
--- - tableau
--- - closedTableau
-
 -- Definition 8, page 14
 -- mixed with Definition 11 (with all PDL stuff missing for now)
 -- a local tableau for X, must be maximal

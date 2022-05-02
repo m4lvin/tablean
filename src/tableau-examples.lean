@@ -87,30 +87,21 @@ begin
   apply @closedTableau.atm {r, ~□p, □(p ⋏ q)} p (by {simp,}),
   -- show that this set is simple:
   { unfold simple, simp at *, tauto, },
-  rw (by refl : (projection {r, ~□p, □(p⋏q)} ∪ {~p}) = {p⋏q, ~p} ),
   apply closedTableau.loc,
   rotate,
   -- con:
   apply localTableau.byLocalRule (@localRule.con {p⋏q, ~p} p q (by {simp, })),
-  have foo : ({p⋏q, ~p} \ {p⋏q}) ∪ {p, q} = ({~p, p, q} : finset formula), {
-    simp, ext1, simp, split, tauto, finish,
-  },
-  rw foo,
   intros child childDef,
   rw finset.mem_singleton at childDef,
-  subst childDef,
   -- not:
   apply localTableau.byLocalRule (@localRule.not _ p _) emptyTableau,
-  exact dec_trivial,
-  {  -- show that endNodesOf is empty
+  { subst childDef, exact dec_trivial, },
+  { -- show that endNodesOf is empty
     intros Y,
     intro YisEndNode,
     simp at *,
     exfalso,
-    rcases YisEndNode with ⟨a,aDef,hyp⟩,
-    subst aDef,
-    -- stuck with eq.rec here?
-    sorry,
+    assumption,
 },
 end
 
@@ -127,7 +118,7 @@ begin
   rotate,
   { -- localTableau α
     -- con
-    apply localTableau.byLocalRule (localRule.con (by {simp only [eq_self_iff_true, or_false, and_self, finset.mem_insert, finset.mem_singleton]} : (r ⋏ ~□p) ∈ α )),
+    apply localTableau.byLocalRule (localRule.con (by {simp} : (r ⋏ ~□p) ∈ α )),
     intros branch branch_def,
     simp only [finset.union_insert, finset.mem_singleton] at branch_def,
     -- nCo
@@ -141,14 +132,13 @@ begin
     -- Note: "cases b_in" does not work here!
     refine if h1 : b = {r, ~□p, ~r} then _ else if h2 : b = {r, ~□p, ~~□(p⋏q)} then _ else _,
     { rw h1, -- right branch
-      let stuff : finset formula := { r, ~p.box, ~r},
       -- not:
-      apply localTableau.byLocalRule (localRule.not (by {simp only [true_or, eq_self_iff_true, or_true, and_self, finset.mem_insert, finset.mem_singleton]} : r ∈ stuff ∧ ~r ∈ stuff)),
+      apply localTableau.byLocalRule (localRule.not (by {simp} : r ∈ { r, ~p.box, ~r} ∧ ~r ∈ { r, ~p.box, ~r})),
       exact emptyTableau,
     },
     { rw h2, --left branch
       -- neg:
-      apply localTableau.byLocalRule (localRule.neg (by {simp only [eq_self_iff_true, or_true, and_self, finset.mem_insert, finset.mem_singleton]} : ~~□(p ⋏ q) ∈ { r, ~□p, ~~□(p ⋏ q) })),
+      apply localTableau.byLocalRule (localRule.neg (by {simp} : ~~□(p ⋏ q) ∈ { r, ~□p, ~~□(p ⋏ q) })),
       intros child childDef,
       simp only [finset.mem_singleton] at *,
       subst childDef,
