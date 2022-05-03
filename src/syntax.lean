@@ -98,3 +98,19 @@ instance setFormula_hasVocabulary : hasVocabulary (finset formula) := hasVocabul
 
 @[simp]
 lemma vocOfNeg {ϕ} : vocabOfFormula (~ϕ) = vocabOfFormula ϕ := by split
+
+lemma vocElem_subs_vocSet {ϕ X} : ϕ ∈ X → vocabOfFormula ϕ ⊆ vocabOfSetFormula X :=
+begin
+  apply finset.induction_on X,
+  -- case ∅:
+  intro phi_in_X, cases phi_in_X,
+  -- case insert:
+  intros ψ S psi_not_in_S IH psi_in_insert,
+  unfold vocabOfSetFormula at *,
+  simp,
+  intros a aIn,
+  simp at *,
+  cases psi_in_insert,
+  { subst psi_in_insert, left, exact aIn, },
+  { right, apply IH psi_in_insert aIn, },
+end

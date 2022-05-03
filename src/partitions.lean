@@ -16,15 +16,6 @@ def partedLocalTableau (X1 X2) : Type := localTableau (X1 ∪ X2)
 def interpolant (X1 X2 : finset formula) (θ : formula) :=
   voc θ ⊆ (voc X1 ∩ voc X2)  ∧  ¬ satisfiable ( X1 ∪ {~θ} )  ∧  ¬ satisfiable ( X2 ∪ {θ} )
 
-
--- TODO: move to syntax.lean
-lemma vocSingleToSet {ϕ X} : ϕ ∈ X → vocabOfFormula ϕ ⊆ vocabOfSetFormula X :=
-begin
-  intros phi_in_X a a_invocPhi,
-  unfold vocabOfSetFormula,
-  sorry,
-end
-
 -- Lemma 14
 lemma botInter {X1 X2} : ⊥ ∈ (X1 ∪ X2) → ∃ θ, interpolant X1 X2 θ :=
 begin
@@ -63,9 +54,9 @@ begin
   { use ϕ, -- ϕ ∈ X1 and ~ϕ ∈ X2
     split,
     { unfold voc, intros a aIn, simp, split,
-      exact vocSingleToSet pSide aIn,
+      exact vocElem_subs_vocSet pSide aIn,
       have h : ~ϕ ∈ X2 , { finish, },
-      have := vocSingleToSet h,
+      have := vocElem_subs_vocSet h,
       simp at *,
       tauto,
     },
@@ -77,9 +68,9 @@ begin
   { use ~ϕ, -- ~ϕ ∈ X1 and ϕ ∈ X2
     split,
     { unfold voc, intros a aIn, simp, split,
-      exact vocSingleToSet nSide aIn,
+      exact vocElem_subs_vocSet nSide aIn,
       have h : ϕ ∈ X2 , { finish, },
-      have := vocSingleToSet h,
+      have := vocElem_subs_vocSet h,
       simp at *,
       tauto,
     },
