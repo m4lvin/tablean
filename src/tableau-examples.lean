@@ -107,7 +107,7 @@ end
 
 
 -- Example 2
-example : closedTableau { r ⋏ ~□p, r ↣ □(p ⋏ q) } :=
+noncomputable example : closedTableau { r ⋏ ~□p, r ↣ □(p ⋏ q) } :=
 begin
   let α := { r ⋏ ~□p, r ↣ □(p ⋏ q) },
   change closedTableau α,
@@ -121,13 +121,10 @@ begin
     simp only [finset.union_insert, finset.mem_singleton] at branch_def,
     -- nCo
     apply localTableau.byLocalRule (localRule.nCo (by {finish} : ~(r ⋏ (~(p ⋏ q).box)) ∈ branch)),
-    subst branch_def,
     dsimp only at *,
     intros b b_in,
+    rw branch_def at b_in,
     simp only [finset.mem_insert, finset.mem_singleton] at b_in,
-    change b = {r, ~□p, ~r} ∨
-           b = {r, ~□p, ~~□(p⋏q)} at b_in,
-    -- Note: "cases b_in" does not work here!
     refine if h1 : b = {r, ~□p, ~r} then _ else if h2 : b = {r, ~□p, ~~□(p⋏q)} then _ else _,
     { rw h1, -- right branch
       -- not:
@@ -139,7 +136,7 @@ begin
       apply localTableau.byLocalRule (localRule.neg (by {simp} : ~~□(p ⋏ q) ∈ { r, ~□p, ~~□(p ⋏ q) })),
       intros child childDef,
       simp only [finset.mem_singleton] at *,
-      subst childDef,
+      rw childDef,
       -- ending local tableau with a simple node:
       apply localTableau.sim (by { unfold simple, simp at *, tauto, } : simple {r, ~□p, □(p ⋏ q)} ),
     },
@@ -148,29 +145,24 @@ begin
   { -- tableau for the simple end nodes:
     intro Y,
     intro Yin,
-    unfold endNodesOf at *,
-    simp at *,
-    -- rw setEndNodes at Yin,
-    have foo := classical.some_spec (classical.some_spec Yin),
-
-    sorry,
-    -- have ∃ statement, but need to make data here!
-    /-
-    cases foo with Ydef Yin,
-    subst Ydef,
-    simp at *,
-    cases Yin with YnotRbranch YnotnotBranch,
-
-    { simp at YnotRbranch, exfalso, sorry, },
-
-    { simp at YnotnotBranch,
-
+    rw setEndNodes at Yin,
+    simp at Yin,
+    -- rw help at Yin,
+    apply classical.choice,
+    rcases Yin with ⟨a,h,YnotRbranch|YnotnotBranch⟩,
+    { -- not-R branch
+      exfalso, -- show that there are no endnodes!
+      subst h,
+      sorry,
+    },
+    { -- notnotbranch
       have Yis : Y = {r, ~□p, □(p ⋏ q)}, {
+        subst h,
         sorry,
       },
       subst Yis,
+      fconstructor,
       exact subTabForEx2,
     },
-    -/
   },
 end
