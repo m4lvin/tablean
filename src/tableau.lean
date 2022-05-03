@@ -48,22 +48,18 @@ def formProjection : formula → option formula
 def projection : finset formula → finset formula
 | X := X.bUnion (λ x, (formProjection x).to_finset)
 
--- #eval projection { ~p, □□q, □q }
-
 lemma proj { g: formula } { X : finset formula } :
   g ∈ projection X ↔ □g ∈ X :=
 begin
   unfold projection,
   simp,
   split,
-  {
-    intro lhs,
+  { intro lhs,
     rcases lhs with ⟨ boxg, boxg_in_X, projboxg_is_g ⟩,
     cases boxg,
     repeat { finish },
   },
-  {
-    intro rhs,
+  { intro rhs,
     use □g,
     split,
     exact rhs,
@@ -79,24 +75,15 @@ begin
   exact proj,
 end
 
--- -- IDEA: can we have a type were all its instances are tableau according to rules?
--- -- (note that correct does not mean closed!!)
--- from general to more demanding, which of these should the tableau data type represent?
--- - any tree
--- - tableau according to rules
--- - maximal tableau <<<<<<<<<<<<<<<<<<<<< new definition which we use now
--- - maximal and closed tableau <<<<<<< old definition! was too strict
-
--- rules: given this set, apply rule to formula, resulting in these new sets
--- rename candidates: "step" or "ruleApplication"
+-- local rules: given this set, we get these sets as child nodes
 inductive localRule : finset formula → finset (finset formula) → Type
 -- closing rules:
 | bot { X     } ( h : ⊥          ∈ X ) : localRule X ∅
 | not { X ϕ   } ( h : ϕ ∈ X ∧ ~ϕ ∈ X ) : localRule X ∅
--- simple localRules:
+-- one-child rules:
 | neg { X ϕ   } ( h : ~~ϕ        ∈ X ) : localRule X { (X \ {~~ϕ}) ∪ { ϕ }    }
 | con { X ϕ ψ } ( h : ϕ ⋏ ψ      ∈ X ) : localRule X { (X \ {ϕ ⋏ ψ}) ∪ { ϕ, ψ } }
--- splitting localRule:
+-- splitting rule:
 | nCo { X ϕ ψ } ( h : ~(ϕ ⋏ ψ)   ∈ X ) : localRule X { X \ { ~ (ϕ ⋏ ψ) } ∪ {~ϕ}
                                                      , X \ { ~ (ϕ ⋏ ψ) } ∪ {~ψ} }
 
@@ -134,7 +121,6 @@ begin
   },
   case box: { tauto, },
 end
-
 
 @[simp]
 lemma union_singleton_is_insert {X : finset formula} {ϕ: formula} :
@@ -346,7 +332,6 @@ inductive localTableau : finset formula → Type
 | sim { X } : simple X → localTableau X
 
 open localTableau
-open localRule
 
 -- needed for endNodesOf
 instance localTableau_has_sizeof : has_sizeof (Σ {X}, localTableau X) := ⟨ λ ⟨X, T⟩, lengthOfSet X ⟩
@@ -363,7 +348,6 @@ lemma botNoEndNodes {X h n} : endNodesOf ⟨X, localTableau.byLocalRule (@localR
 @[simp]
 lemma notNoEndNodes {X h ϕ n} : endNodesOf ⟨X, localTableau.byLocalRule (@localRule.not X h ϕ) n⟩ = ∅ := by { unfold endNodesOf, simp, }
 
-@[simp]
 lemma setEndNodes {X B lr next} : endNodesOf ⟨X, @byLocalRule _ B lr next⟩ = B.attach.bUnion (λ ⟨Y,h⟩, endNodesOf ⟨Y, next Y h⟩) :=
 begin
   simp,
@@ -428,13 +412,13 @@ begin
       intro beta, intro beta_in_empty, tauto,
     },
     case not : _ _ h {
-      have t := (localTableau.byLocalRule (not h)) _, use t,
+      have t := (localTableau.byLocalRule (localRule.not h)) _, use t,
       intro beta, intro beta_in_empty, tauto,
     },
     case neg : _ f h {
-      have t := (localTableau.byLocalRule (neg h)) _, use t,
+      have t := (localTableau.byLocalRule (localRule.neg h)) _, use t,
       intros beta beta_def,
-      have rDec := localRulesDecreaseLength (neg h) beta beta_def,
+      have rDec := localRulesDecreaseLength (localRule.neg h) beta beta_def,
       subst nDef,
       specialize IH (lengthOf beta) rDec beta,
       simp at IH,
@@ -442,9 +426,9 @@ begin
       use t,
     },
     case con : _ f g h {
-      have t := localTableau.byLocalRule (con h) _, use t,
+      have t := localTableau.byLocalRule (localRule.con h) _, use t,
       intros beta beta_def,
-      have rDec := localRulesDecreaseLength (con h) beta beta_def,
+      have rDec := localRulesDecreaseLength (localRule.con h) beta beta_def,
       subst nDef,
       specialize IH (lengthOf beta) rDec beta,
       simp at IH,
@@ -452,9 +436,9 @@ begin
       use t,
     },
     case nCo : _ f g h {
-      have t := localTableau.byLocalRule (nCo h) _, use t,
+      have t := localTableau.byLocalRule (localRule.nCo h) _, use t,
       intros beta beta_def,
-      have rDec := localRulesDecreaseLength (nCo h) beta beta_def,
+      have rDec := localRulesDecreaseLength (localRule.nCo h) beta beta_def,
       subst nDef,
       specialize IH (lengthOf beta) rDec beta,
       simp at IH,

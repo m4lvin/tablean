@@ -106,8 +106,6 @@ begin
 end
 
 
--- set_option profiler true
-
 -- Example 2
 example : closedTableau { r ⋏ ~□p, r ↣ □(p ⋏ q) } :=
 begin

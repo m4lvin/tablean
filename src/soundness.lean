@@ -488,7 +488,7 @@ begin
     specialize IH Y Y_in_YS,
     set ltY := next Y Y_in_YS,
     have endNodesInclusion : ∀ W, W ∈ endNodesOf ⟨Y, ltY⟩ → W ∈ endNodesOf ⟨X, localTableau.byLocalRule lr next⟩ , {
-      finish,
+      rw setEndNodes, finish,
     },
     have endsOfYnotSat : (∀ (Y_1 : finset formula), Y_1 ∈ endNodesOf ⟨Y, ltY⟩ → ¬ satisfiable Y_1), {
       intros W W_is_endOf_Y,
