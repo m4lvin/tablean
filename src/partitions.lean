@@ -90,18 +90,61 @@ begin
 end
 
 
-lemma tabToInt : ∀ X1 X2, partedLocalTableau X1 X2 → ∃ θ, interpolant X1 X2 θ :=
+lemma tabToInt : Π n X, n = lengthOfSet X → ∀ X1 X2 {h}, X = (finset.disj_union X1 X2 h) → partedLocalTableau X1 X2 → ∃ θ, interpolant X1 X2 θ :=
 begin
-  intros X1 X2 pt,
+  intro N,
+  apply nat.strong_induction_on N,
+  intros n IH,
+  intros X lenX_is_n X1 X2 noOverlap defX pt,
   unfold partedLocalTableau at pt,
-  cases pt, -- NOTE: we need induction, but that loses the partition, do induction on n:=|X| instead???
+  cases pt,
   case byLocalRule : B lr next {
     cases lr,
       -- The bot and not cases use Lemma 14
       case bot : bot_in_X { exact botInter bot_in_X, },
       case not : ϕ in_both { exact notInter in_both },
-      case neg : {
-        sorry,
+      case neg : ϕ notnotphi_in {
+        simp at *,
+        cases notnotphi_in,
+        { -- case ~~ϕ ∈ X1
+          subst defX,
+          let newX1 := X1 \ {~~ϕ} ∪ {ϕ},
+          have sameVoc : voc X1 = voc newX1, {
+            sorry,
+          },
+          set m := lengthOfSet (newX1 ∪ X2),
+          have m_lt_n : m < n, {
+            have t:= localRulesDecreaseLength (localRule.neg (_ : ~~ϕ ∈ X1 ∪ X2)) (newX1 ∪ X2),
+            { subst lenX_is_n,
+              apply t,
+              simp at *,
+              ext1 a, specialize noOverlap a, simp at *,
+              split,
+              all_goals { intro lhs, sorry, }, -- FIXME: can "finish", but slow
+            },
+            finish,
+          },
+          specialize IH m m_lt_n (newX1 ∪ X2) (by refl) newX1 X2,
+          have ltNew : localTableau (newX1 ∪ X2), { apply next, simp, sorry, },
+          have childInt : Exists (interpolant newX1 X2), {
+            apply IH _ (by refl) ltNew,
+            intros a a_in_newX1,
+            apply noOverlap a,
+            -- STUCK: what if a = ϕ ???
+            sorry,
+          },
+          cases childInt with θ theta_is_chInt,
+          use θ,
+          unfold interpolant at *,
+          split,
+          { rw sameVoc, tauto, },
+          split,
+          { sorry, }, -- TODO: use the satisfiability preservation from soundness or completeness?
+          tauto,
+        },
+        { -- case ~~ϕ ∈ X2
+          sorry,
+        }
       },
       case con : {
         sorry,
@@ -111,6 +154,7 @@ begin
       },
   },
   case sim : {
+    -- NOTE: still missing: also need to assume that interpolants for end nodes are given!?
     sorry,
   }
 end
