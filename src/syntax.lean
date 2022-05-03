@@ -95,3 +95,6 @@ class hasVocabulary (α : Type) := (voc : α → finset char)
 open hasVocabulary
 instance formula_hasVocabulary : hasVocabulary formula := hasVocabulary.mk vocabOfFormula
 instance setFormula_hasVocabulary : hasVocabulary (finset formula) := hasVocabulary.mk vocabOfSetFormula
+
+@[simp]
+lemma vocOfNeg {ϕ} : vocabOfFormula (~ϕ) = vocabOfFormula ϕ := by split
