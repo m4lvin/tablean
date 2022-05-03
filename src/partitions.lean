@@ -3,21 +3,16 @@ import syntax
 import tableau
 import semantics
 
-open hasVocabulary
+open hasVocabulary has_sat
 
-def partition (X : finset formula) := { L | L ⊆ X }
+def partition := finset formula × finset formula
 
-def partedTableau {X} : Type := closedTableau X × partition X
+def partedTableau (X1 X2) : Type := closedTableau (X1 ∪ X2)
 
-def partedLocalTableau {X} : Type := localTableau X × partition X
+def partedLocalTableau (X1 X2) : Type := localTableau (X1 ∪ X2)
 
-def L {X} : partition X → finset formula | p := p
-def R {X} : partition X → finset formula | p := X \ p
 
 -- Definition 24
-def part_interpolant {X : finset formula} (p : partition X) (θ : formula) :=
-  voc θ ⊆ (voc (L p) ∩ voc (R p))
-  ∧
-  inconsistent ( L p ∪ {~θ} )
-  ∧
-  inconsistent ( R p ∪ {θ} )
+def interpolant (X1 X2 : finset formula) (θ : formula) :=
+  voc θ ⊆ (voc X1 ∩ voc X2)  ∧  ¬ satisfiable ( X1 ∪ {~θ} )  ∧  ¬ satisfiable ( X2 ∪ {θ} )
+
