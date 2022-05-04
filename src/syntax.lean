@@ -89,7 +89,7 @@ def vocabOfFormula : formula → finset char
 | (□ φ)    := vocabOfFormula φ
 
 def vocabOfSetFormula : finset formula → finset char
-| X := finset.fold (∪) ∅ vocabOfFormula X
+| X := finset.bUnion X vocabOfFormula
 
 class hasVocabulary (α : Type) := (voc : α → finset char)
 open hasVocabulary
@@ -112,5 +112,5 @@ begin
   simp at *,
   cases psi_in_insert,
   { subst psi_in_insert, left, exact aIn, },
-  { right, apply IH psi_in_insert aIn, },
+  { tauto, },
 end
