@@ -89,6 +89,26 @@ begin
   },
 end
 
+-- TODO: move to syntax.lean or create new vocabulary.lean ?!
+lemma vocPreserved (X : finset formula) (ψ ϕ) :
+  ψ ∈ X → voc ϕ = voc ψ → voc X = voc (X \ {ψ} ∪ {ϕ}) :=
+begin
+  intros psi_in_X eq_voc,
+  unfold voc at *,
+  unfold vocabOfSetFormula,
+  ext1,
+  split,
+  all_goals { intro a_in, norm_num at *, },
+  { rcases a_in with ⟨θ,_,a_in_vocTheta⟩,
+    by_cases h : θ = ψ,
+    { left, rw eq_voc, rw ← h, exact a_in_vocTheta, },
+    { right, use θ, tauto, },
+  },
+  { cases a_in,
+    { use ψ, rw ← eq_voc, tauto, },
+    { rcases a_in with ⟨θ,_,a_in_vocTheta⟩, use θ, tauto, }
+  },
+end
 
 lemma tabToInt : Π n X, n = lengthOfSet X → ∀ X1 X2 {h}, X = (finset.disj_union X1 X2 h) → partedLocalTableau X1 X2 → ∃ θ, interpolant X1 X2 θ :=
 begin
@@ -109,9 +129,6 @@ begin
         { -- case ~~ϕ ∈ X1
           subst defX,
           let newX1 := X1 \ {~~ϕ} ∪ {ϕ},
-          have sameVoc : voc X1 = voc newX1, {
-            sorry,
-          },
           set m := lengthOfSet (newX1 ∪ X2),
           have m_lt_n : m < n, {
             have t:= localRulesDecreaseLength (localRule.neg (_ : ~~ϕ ∈ X1 ∪ X2)) (newX1 ∪ X2),
@@ -125,7 +142,11 @@ begin
             finish,
           },
           specialize IH m m_lt_n (newX1 ∪ X2) (by refl) newX1 X2,
-          have ltNew : localTableau (newX1 ∪ X2), { apply next, simp, sorry, },
+          -- FIXME: Why do we need the internal notation for finset to use "next"?
+          have yclaim : newX1 ∪ X2 ∈ ({val := {{val := X1.val.ndunion X2.val, nodup := _} \ {~~ϕ} ∪ {ϕ}}, nodup := _} : finset (finset formula)), {
+            simp, sorry,
+          },
+          have ltNew := next (newX1 ∪ X2) yclaim,
           have childInt : Exists (interpolant newX1 X2), {
             apply IH _ (by refl) ltNew,
             intros a a_in_newX1,
@@ -137,7 +158,7 @@ begin
           use θ,
           unfold interpolant at *,
           split,
-          { rw sameVoc, tauto, },
+          { rw vocPreserved X1 (~~ϕ) ϕ notnotphi_in (by {unfold voc, simp, }), tauto, },
           split,
           { sorry, }, -- TODO: use the satisfiability preservation from soundness or completeness?
           tauto,
