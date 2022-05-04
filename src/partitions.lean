@@ -131,20 +131,20 @@ begin
           let newX1 := X1 \ {~~ϕ} ∪ {ϕ},
           set m := lengthOfSet (newX1 ∪ X2),
           have m_lt_n : m < n, {
-            have t:= localRulesDecreaseLength (localRule.neg (_ : ~~ϕ ∈ X1 ∪ X2)) (newX1 ∪ X2),
-            { subst lenX_is_n,
-              apply t,
-              simp at *,
-              ext1 a, specialize noOverlap a, simp at *,
-              split,
-              all_goals { intro lhs, sorry, }, -- FIXME: can "finish", but slow
-            },
-            finish,
+            subst lenX_is_n,
+            apply localRulesDecreaseLength (localRule.neg (by {finish} : ~~ϕ ∈ X1 ∪ X2)) (newX1 ∪ X2),
+            simp at *,
+            ext1 a, specialize noOverlap a, simp at *,
+            split,
+            { intro lhs, finish, }, -- FIXME: slow
+            { intro rhs, finish, },
           },
           specialize IH m m_lt_n (newX1 ∪ X2) (by refl) newX1 X2,
-          -- FIXME: Why do we need the internal notation for finset to use "next"?
-          have yclaim : newX1 ∪ X2 ∈ ({val := {{val := X1.val.ndunion X2.val, nodup := _} \ {~~ϕ} ∪ {ϕ}}, nodup := _} : finset (finset formula)), {
-            simp, sorry,
+          have yclaim : newX1 ∪ X2 ∈ ({ (X1 ∪ X2) \ {~~ϕ} ∪ {ϕ} } : finset (finset formula)), {
+            rw finset.mem_singleton,
+            change (X1 \ {~~ϕ} ∪ {ϕ}) ∪ X2 = (X1 ∪ X2) \ {~~ϕ} ∪ {ϕ},
+            simp,
+            ext1 a, specialize noOverlap a, sorry, -- TODO
           },
           have ltNew := next (newX1 ∪ X2) yclaim,
           have childInt : Exists (interpolant newX1 X2), {
