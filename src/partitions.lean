@@ -144,7 +144,17 @@ begin
             rw finset.mem_singleton,
             change (X1 \ {~~ϕ} ∪ {ϕ}) ∪ X2 = (X1 ∪ X2) \ {~~ϕ} ∪ {ϕ},
             simp,
-            ext1 a, specialize noOverlap a, sorry, -- TODO
+            ext1 a, split,
+            { intro lhs, simp at *, cases lhs,
+              { left, assumption, },
+              cases lhs,
+              { right, split, tauto, tauto, },
+              { right, split,
+                { specialize noOverlap a, have : a ∉ X1, tauto, finish, },
+                tauto,
+              },
+            },
+            { intro rhs, simp at *, tauto, }, -- FIXME: slow
           },
           have ltNew := next (newX1 ∪ X2) yclaim,
           have childInt : Exists (interpolant newX1 X2), {
@@ -160,7 +170,29 @@ begin
           split,
           { rw vocPreserved X1 (~~ϕ) ϕ notnotphi_in (by {unfold voc, simp, }), tauto, },
           split,
-          { sorry, }, -- TODO: use the satisfiability preservation from soundness or completeness?
+          { by_contradiction hyp,
+            unfold satisfiable at hyp,
+            rcases hyp with ⟨W,M,w,sat⟩,
+            have : satisfiable (newX1 ∪ {~θ}), {
+              unfold satisfiable,
+              use [W,M,w],
+              intros ψ psi_in_newX_u_notTheta,
+              simp at psi_in_newX_u_notTheta,
+              cases psi_in_newX_u_notTheta,
+              { apply sat, rw psi_in_newX_u_notTheta, simp at *, },
+              cases psi_in_newX_u_notTheta,
+              { apply sat, simp at *, tauto, },
+              { rw psi_in_newX_u_notTheta, apply of_not_not,
+                change evaluate (M, w) (~~ϕ),
+                specialize sat (~~ϕ),
+                apply sat, simp, right, assumption,
+              },
+            },
+            tauto,
+            -- NOTE: more generally, it would be good to have a separate lemma
+            -- that a model satisfies the old set iff it satisfies the new set.
+            -- (This is different from ∃model-satisfiability preservation!)
+            },
           tauto,
         },
         { -- case ~~ϕ ∈ X2
