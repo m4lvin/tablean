@@ -89,6 +89,16 @@ begin
   },
 end
 
+-- TODO: move to syntax.lean
+lemma vocMonotone {X Y : finset formula} (hyp : X ⊆ Y) : voc X ⊆ voc Y :=
+begin
+  unfold voc, unfold vocabOfSetFormula at *,
+  intros a aIn,
+  unfold finset.bUnion at *,
+  simp at *,
+  tauto,
+end
+
 -- TODO: move to syntax.lean or create new vocabulary.lean ?!
 lemma vocPreserved (X : finset formula) (ψ ϕ) :
   ψ ∈ X → voc ϕ = voc ψ → voc X = voc (X \ {ψ} ∪ {ϕ}) :=
@@ -110,12 +120,12 @@ begin
   },
 end
 
-lemma tabToInt : Π n X, n = lengthOfSet X → ∀ X1 X2 {h}, X = (finset.disj_union X1 X2 h) → partedLocalTableau X1 X2 → ∃ θ, interpolant X1 X2 θ :=
+lemma tabToInt : Π n X, n = lengthOfSet X → ∀ X1 X2, X = X1 ∪ X2 → partedLocalTableau X1 X2 → ∃ θ, interpolant X1 X2 θ :=
 begin
   intro N,
   apply nat.strong_induction_on N,
   intros n IH,
-  intros X lenX_is_n X1 X2 noOverlap defX pt,
+  intros X lenX_is_n X1 X2 defX pt,
   unfold partedLocalTableau at pt,
   cases pt,
   case byLocalRule : B lr next {
@@ -129,46 +139,41 @@ begin
         { -- case ~~ϕ ∈ X1
           subst defX,
           let newX1 := X1 \ {~~ϕ} ∪ {ϕ},
-          set m := lengthOfSet (newX1 ∪ X2),
-          have m_lt_n : m < n, {
-            subst lenX_is_n,
-            apply localRulesDecreaseLength (localRule.neg (by {finish} : ~~ϕ ∈ X1 ∪ X2)) (newX1 ∪ X2),
-            simp at *,
-            ext1 a, specialize noOverlap a, simp at *,
-            split,
-            { intro lhs, finish, }, -- FIXME: slow
-            { intro rhs, finish, },
-          },
-          specialize IH m m_lt_n (newX1 ∪ X2) (by refl) newX1 X2,
-          have yclaim : newX1 ∪ X2 ∈ ({ (X1 ∪ X2) \ {~~ϕ} ∪ {ϕ} } : finset (finset formula)), {
+          let newX2 := X2 \ {~~ϕ}, -- trying to deal with the annoying overlap case
+          set m := lengthOfSet (newX1 ∪ newX2),
+          have yclaim : newX1 ∪ newX2 ∈ ({ (X1 ∪ X2) \ {~~ϕ} ∪ {ϕ} } : finset (finset formula)), {
             rw finset.mem_singleton,
-            change (X1 \ {~~ϕ} ∪ {ϕ}) ∪ X2 = (X1 ∪ X2) \ {~~ϕ} ∪ {ϕ},
+            change (X1 \ {~~ϕ} ∪ {ϕ}) ∪ (X2 \ {~~ϕ}) = (X1 ∪ X2) \ {~~ϕ} ∪ {ϕ},
             simp,
             ext1 a, split,
             { intro lhs, simp at *, cases lhs,
               { left, assumption, },
-              cases lhs,
-              { right, split, tauto, tauto, },
-              { right, split,
-                { specialize noOverlap a, have : a ∉ X1, tauto, finish, },
-                tauto,
-              },
+              cases lhs ; { right, tauto, },
             },
-            { intro rhs, simp at *, tauto, }, -- FIXME: slow
+            { intro rhs, simp at *, tauto, },
           },
-          have ltNew := next (newX1 ∪ X2) yclaim,
-          have childInt : Exists (interpolant newX1 X2), {
-            apply IH _ (by refl) ltNew,
-            intros a a_in_newX1,
-            apply noOverlap a,
-            -- STUCK: what if a = ϕ ???
-            sorry,
+          have m_lt_n : m < n, {
+            rw lenX_is_n,
+            exact localRulesDecreaseLength (localRule.neg (by {finish} : ~~ϕ ∈ X1 ∪ X2)) (newX1 ∪ newX2) yclaim,
+          },
+          specialize IH m m_lt_n (newX1 ∪ newX2) (by refl) newX1 newX2,
+          have ltNew := next (newX1 ∪ newX2) yclaim,
+          have childInt : Exists (interpolant newX1 newX2), {
+            apply IH (by refl) ltNew,
           },
           cases childInt with θ theta_is_chInt,
+          rcases theta_is_chInt with ⟨vocSub,noSatX1,noSatX2⟩,
           use θ,
           unfold interpolant at *,
           split,
-          { rw vocPreserved X1 (~~ϕ) ϕ notnotphi_in (by {unfold voc, simp, }), tauto, },
+          { rw vocPreserved X1 (~~ϕ) ϕ notnotphi_in (by {unfold voc, simp, }),
+            change voc θ ⊆ voc newX1 ∩ voc X2,
+            have : voc newX2 ⊆ voc X2 , { apply vocMonotone, simp, },
+            intros a aInVocTheta,
+            simp at *,
+            rw finset.subset_inter_iff at vocSub,
+            tauto,
+          },
           split,
           { by_contradiction hyp,
             unfold satisfiable at hyp,
@@ -189,11 +194,18 @@ begin
               },
             },
             tauto,
-            -- NOTE: more generally, it would be good to have a separate lemma
-            -- that a model satisfies the old set iff it satisfies the new set.
-            -- (This is different from ∃model-satisfiability preservation!)
+          },
+          { by_contradiction hyp,
+            unfold satisfiable at hyp,
+            rcases hyp with ⟨W,M,w,sat⟩,
+            have : satisfiable (newX2 ∪ {θ}), {
+              unfold satisfiable at *,
+              use [W,M,w],
+              intros ψ psi_in_newX2cupTheta,
+              apply sat, simp at *, tauto,
             },
-          tauto,
+            tauto,
+          },
         },
         { -- case ~~ϕ ∈ X2
           sorry,
