@@ -7,9 +7,9 @@ import modelgraphs
 
 open has_sat
 
--- Each local rule is "complete", i.e. preserves satisfiability "upwards"
-lemma localRuleCompleteness {α : finset formula} { B : finset (finset formula) } :
-  localRule α B → (∃ β ∈ B, satisfiable β) → satisfiable α :=
+-- Each local rule preserves truth "upwards"
+lemma localRuleTruth {W : Type} {M : kripkeModel W} {w : W} {X : finset formula} {B : finset (finset formula)} :
+  localRule X B → (∃ Y ∈ B, (M,w) ⊨ Y) → (M,w) ⊨ X :=
 begin
   intro r,
   cases r,
@@ -21,14 +21,10 @@ begin
   },
   case localRule.neg : a f notnotf_in_a {
     intro hyp,
-    rcases hyp with ⟨ b, b_sat ⟩,
-    unfold satisfiable at *,
-    simp at b_sat,
-    rcases b_sat with ⟨ H, W, M, w, w_sat_b ⟩,
-    use [W, M, w],
+    rcases hyp with ⟨b, b_in_B, w_sat_b⟩,
     intros phi phi_in_a,
     have b_is_af : b = insert f (a \ {~~f}), {
-      subst H, ext1, simp,
+      simp at *, subst b_in_B,
     },
     have phi_in_b_or_is_f : phi ∈ b ∨ phi = ~~f, {
       rw b_is_af,
@@ -51,19 +47,16 @@ begin
   },
   case localRule.con : a f g fandg_in_a {
     intro hyp,
-    rcases hyp with ⟨ b, b_sat ⟩,
-    unfold satisfiable at *,
-    rcases b_sat with ⟨ b_def, W, M, w, w_sat_b ⟩,
-    use [W, M, w],
+    rcases hyp with ⟨b, b_in_B, w_sat_b⟩,
     intros phi phi_in_a,
-    simp at b_def,
+    simp at b_in_B,
     have b_is_fga : b = insert f (insert g (a \ {f⋏g})), {
-      subst b_def, ext1, simp,
+      subst b_in_B, ext1, simp,
     },
     have phi_in_b_or_is_fandg : phi ∈ b ∨ phi = f⋏g, {
       rw b_is_fga,
       simp,
-      finish, -- finish,
+      finish,
     },
     cases phi_in_b_or_is_fandg with phi_in_b phi_is_fandg,
     {
@@ -79,23 +72,20 @@ begin
   },
   case localRule.nCo : a f g not_fandg_in_a {
     intro hyp,
-    rcases hyp with ⟨ b, b_sat ⟩ ,
-    unfold satisfiable at *,
-    rcases b_sat with ⟨ b_def, W, M, w, w_sat_b ⟩,
-    use [W, M, w],
+    rcases hyp with ⟨b, b_in_B, w_sat_b⟩,
     intros phi phi_in_a,
     simp at *,
     have phi_in_b_or_is_notfandg : phi ∈ b ∨ phi = ~(f⋏g), {
-      cases b_def ; { rw b_def, simp, finish, },
+      cases b_in_B ; { rw b_in_B, simp, finish, },
     },
-    cases b_def,
+    cases b_in_B,
     { -- b contains ~f
       cases phi_in_b_or_is_notfandg with phi_in_b phi_def,
       { exact w_sat_b phi phi_in_b, },
       {
         rw phi_def,
         unfold evaluate,
-        rw b_def at w_sat_b,
+        rw b_in_B at w_sat_b,
         specialize w_sat_b (~f),
         rw not_and_distrib,
         left,
@@ -110,7 +100,7 @@ begin
       {
         rw phi_def,
         unfold evaluate,
-        rw b_def at w_sat_b,
+        rw b_in_B at w_sat_b,
         specialize w_sat_b (~g),
         rw not_and_distrib,
         right,
@@ -122,6 +112,19 @@ begin
   },
 end
 
+-- Each local rule is "complete", i.e. preserves satisfiability "upwards"
+lemma localRuleCompleteness {X : finset formula} { B : finset (finset formula) } :
+  localRule X B → (∃ Y ∈ B, satisfiable Y) → satisfiable X :=
+begin
+  intro lr,
+  intro sat_B,
+  rcases sat_B with ⟨Y, Y_in_B, sat_Y⟩,
+  unfold satisfiable at *,
+  rcases sat_Y with ⟨W,M,w,w_sat_Y⟩,
+  use [W,M,w],
+  apply localRuleTruth lr,
+  tauto,
+end
 
 -- Lemma 11 (but rephrased to be about local tableau!?)
 lemma inconsUpwards {X} {ltX : localTableau X} : (Π en ∈ endNodesOf ⟨X, ltX⟩, inconsistent en) → inconsistent X :=
