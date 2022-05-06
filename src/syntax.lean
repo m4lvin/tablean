@@ -78,39 +78,3 @@ class hasComplexity (α : Type) := (complexityOf : α → ℕ)
 open hasComplexity
 instance formula_hasComplexity : hasComplexity formula := hasComplexity.mk complexityOfFormula
 instance setFormula_hasComplexity : hasComplexity (finset formula) := hasComplexity.mk complexityOfSet
-
--- VOCABULARY
-
-def vocabOfFormula : formula → finset char
-| (⊥)      := set.to_finset { }
-| ( (· c)) := { c }
-| (~ φ)    := vocabOfFormula φ
-| (φ ⋏ ψ ) := vocabOfFormula φ ∪ vocabOfFormula ψ
-| (□ φ)    := vocabOfFormula φ
-
-def vocabOfSetFormula : finset formula → finset char
-| X := finset.bUnion X vocabOfFormula
-
-class hasVocabulary (α : Type) := (voc : α → finset char)
-open hasVocabulary
-instance formula_hasVocabulary : hasVocabulary formula := hasVocabulary.mk vocabOfFormula
-instance setFormula_hasVocabulary : hasVocabulary (finset formula) := hasVocabulary.mk vocabOfSetFormula
-
-@[simp]
-lemma vocOfNeg {ϕ} : vocabOfFormula (~ϕ) = vocabOfFormula ϕ := by split
-
-lemma vocElem_subs_vocSet {ϕ X} : ϕ ∈ X → vocabOfFormula ϕ ⊆ vocabOfSetFormula X :=
-begin
-  apply finset.induction_on X,
-  -- case ∅:
-  intro phi_in_X, cases phi_in_X,
-  -- case insert:
-  intros ψ S psi_not_in_S IH psi_in_insert,
-  unfold vocabOfSetFormula at *,
-  simp,
-  intros a aIn,
-  simp at *,
-  cases psi_in_insert,
-  { subst psi_in_insert, left, exact aIn, },
-  { tauto, },
-end

@@ -10,20 +10,6 @@ def interpolant (φ : formula) (ψ : formula) (θ : formula) :=
 
 open has_sat
 
-lemma tautImp_iff_comboNotUnsat {ϕ ψ : formula} : tautology (ϕ ↣ ψ) ↔  ¬ satisfiable ( {ϕ, ~ψ} : finset formula ) :=
-begin
-  unfold tautology,
-  unfold satisfiable,
-  simp,
-  split ;
-  { intro hyp,
-    intros W M w,
-    specialize hyp W M w,
-    intro sat_phi,
-    unfold evaluate at *, simp at *, tauto,
-  },
-end
-
 lemma interpolation {ϕ ψ} : tautology (ϕ ↣ ψ) → ∃ (θ : formula), interpolant ϕ ψ θ :=
 begin
   intros hyp,

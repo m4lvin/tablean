@@ -1,17 +1,19 @@
 -- TABLEAU
 
-import syntax
-import semantics
 import data.finset.basic
 import data.finset.pimage
 import algebra.big_operators.order
 import tactic
 import order.well_founded_set
 
+import syntax
+import semantics
+import setsimp
+
 open formula
+open hasLength
 
 -- Definition 9, page 15
--- TODO add programs here!
 -- A set X is closed  iff  0 ∈ X or X contains a formula and its negation.
 def closed : finset formula → Prop := λ X, ⊥ ∈ X ∨ ∃ f ∈ X, ~f ∈ X
 -- A set X is simple  iff  all P ∈ X are (negated) atoms or [A]_ or ¬[A]_.
@@ -75,6 +77,48 @@ begin
   exact proj,
 end
 
+@[simp]
+lemma projection_length_leq : ∀ f, (projection {f}).sum lengthOfFormula ≤ lengthOfFormula f :=
+begin
+  intro f,
+  cases f,
+  { omega, },
+  { exact dec_trivial, },
+  { exact dec_trivial, },
+  { exact dec_trivial, },
+  { have subsubClaim : projection {□f} = {f}, {
+      ext1, rw proj, simp,
+    },
+    rw subsubClaim,
+    unfold lengthOfFormula, simp,
+  },
+end
+
+lemma projection_set_length_leq : ∀ X, lengthOfSet (projection X) ≤ lengthOfSet X :=
+begin
+intro X,
+apply finset.induction_on X,
+{ unfold lengthOfSet, simp, intros f f_in_empty, cases f_in_empty, },
+{ intros f S f_not_in_S IH,
+  unfold lengthOfSet,
+  rw finset.sum_insert f_not_in_S,
+  simp,
+  have insert_comm_proj : ∀ X f, projection (insert f X) = (projection {f}) ∪ (projection X), {
+    intros X f,
+    unfold projection,
+    ext1 g,
+    simp,
+  },
+  { calc (projection (insert f S)).sum lengthOfFormula
+       = (projection (insert f S)).sum lengthOfFormula : refl _
+   ... = (projection {f} ∪ projection S).sum lengthOfFormula : by { rw insert_comm_proj S f, }
+   ... ≤ (projection {f}).sum lengthOfFormula + (projection S).sum lengthOfFormula : by { apply sum_union_le, }
+   ... ≤ lengthOfFormula f + (projection S).sum lengthOfFormula : by { simp only [add_le_add_iff_right, projection_length_leq], }
+   ... ≤ lengthOfFormula f + S.sum lengthOfFormula : by { simp, apply IH, },
+  },
+},
+end
+
 -- local rules: given this set, we get these sets as child nodes
 inductive localRule : finset formula → finset (finset formula) → Type
 -- closing rules:
@@ -121,126 +165,6 @@ begin
   },
   case box: { tauto, },
 end
-
-@[simp]
-lemma union_singleton_is_insert {X : finset formula} {ϕ: formula} :
-  X ∪ {ϕ} = insert ϕ X :=
-begin
-  have fo := finset.insert_eq ϕ X,
-  finish,
-end
-
-@[simp]
-lemma sdiff_singleton_is_erase {X : finset formula} {ϕ: formula} :
-  X \ {ϕ} = X.erase ϕ :=
-begin
-  apply finset.induction_on X,
-  simp,
-  intros g Y gNotInY IH,
-  ext1,
-  finish,
-end
-
-@[simp]
-lemma lengthAdd {X : finset formula} :
-  ∀ {ϕ} (h : ϕ ∉ X), lengthOfSet (insert ϕ X) = lengthOfSet X + lengthOfFormula ϕ :=
-begin
-  apply finset.induction_on X,
-  {
-    unfold lengthOfSet,
-    simp,
-  },
-  {
-    intros ψ Y psiNotInY IH,
-    unfold lengthOfSet at *,
-    intros ϕ h,
-    finish,
-  },
-end
-
-@[simp]
-lemma lengthOf_insert_leq_plus {X: finset formula} {ϕ : formula} :
-  lengthOfSet (insert ϕ X) ≤ lengthOfSet X + lengthOfFormula ϕ :=
-begin
-cases (em (ϕ ∈ X)) with in_x not_in_x,
-{ rw finset.insert_eq_of_mem in_x, simp, },
-{ rw lengthAdd not_in_x, },
-end
-
-@[simp]
-lemma lengthRemove (X : finset formula) :
-  ∀ ϕ ∈ X, lengthOfSet (X.erase ϕ) + lengthOfFormula ϕ = lengthOfSet X :=
-begin
-  intros ϕ in_X,
-  have claim : lengthOfSet (insert ϕ (X \ {ϕ})) = lengthOfSet (X \ {ϕ}) + lengthOfFormula ϕ,
-  {
-    apply lengthAdd,
-    simp,
-  },
-  have anotherClaim : insert ϕ (X \ {ϕ}) = X, {
-    ext1,
-    simp only [finset.mem_sdiff, finset.mem_insert, finset.mem_singleton],
-    split,
-    finish,
-    tauto,
-  },
-  rw anotherClaim at claim,
-  finish,
-end
-
-@[simp]
-lemma projection_length_leq : ∀ f, (projection {f}).sum lengthOfFormula ≤ lengthOfFormula f :=
-begin
-  intro f,
-  cases f,
-  { omega, },
-  { exact dec_trivial, },
-  { exact dec_trivial, },
-  { exact dec_trivial, },
-  { have subsubClaim : projection {□f} = {f}, {
-      ext1, rw proj, simp,
-    },
-    rw subsubClaim,
-    unfold lengthOfFormula, simp,
-  },
-end
-
-@[simp]
-lemma sum_union_le { T } [decidable_eq T] : ∀ { X Y : finset T } { F : T → ℕ }, (X ∪ Y).sum F ≤ X.sum F + Y.sum F :=
-begin
-  intros X Y F,
-  { calc (X ∪ Y).sum F
-       ≤ (X ∪ Y).sum F + (X ∩ Y).sum F : by { simp, }
-   ... = X.sum F + Y.sum F : finset.sum_union_inter,
-  },
-end
-
-lemma projection_set_length_leq : ∀ X, lengthOfSet (projection X) ≤ lengthOfSet X :=
-begin
-intro X,
-apply finset.induction_on X,
-{ unfold lengthOfSet, simp, intros f f_in_empty, cases f_in_empty, },
-{ intros f S f_not_in_S IH,
-  unfold lengthOfSet,
-  rw finset.sum_insert f_not_in_S,
-  simp,
-  have insert_comm_proj : ∀ X f, projection (insert f X) = (projection {f}) ∪ (projection X), {
-    intros X f,
-    unfold projection,
-    ext1 g,
-    simp,
-  },
-  { calc (projection (insert f S)).sum lengthOfFormula
-       = (projection (insert f S)).sum lengthOfFormula : refl _
-   ... = (projection {f} ∪ projection S).sum lengthOfFormula : by { rw insert_comm_proj S f, }
-   ... ≤ (projection {f}).sum lengthOfFormula + (projection S).sum lengthOfFormula : by { apply sum_union_le, }
-   ... ≤ lengthOfFormula f + (projection S).sum lengthOfFormula : by { simp only [add_le_add_iff_right, projection_length_leq], }
-   ... ≤ lengthOfFormula f + S.sum lengthOfFormula : by { simp, apply IH, },
-  },
-},
-end
-
-open hasLength
 
 lemma localRulesDecreaseLength { X : finset formula } { B : finset (finset formula) } (r : localRule X B) :
   ∀ Y ∈ B, lengthOfSet Y < lengthOfSet X :=
@@ -394,16 +318,14 @@ begin
   intros n IH α nDef,
   have canApplyRule := em (¬ ∃ B (_ : localRule α B), true),
   cases canApplyRule,
-  {
-    split,
+  { split,
     apply localTableau.sim,
     by_contradiction hyp,
     have fop := notSimpleThenLocalRule hyp,
     tauto,
     tauto,
   },
-  {
-    simp at canApplyRule,
+  { simp at canApplyRule,
     cases canApplyRule with B r_exists,
     cases r_exists with r _hyp,
     cases r,

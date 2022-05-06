@@ -2,6 +2,7 @@
 import syntax
 import tableau
 import semantics
+import vocabulary
 
 open hasVocabulary has_sat
 
@@ -86,37 +87,6 @@ begin
     all_goals { by_contradiction h, rcases h with ⟨W,M,w1,sat⟩, },
     { specialize sat (~~⊥), simp at *, unfold evaluate at sat, tauto, },
     { have h1 := sat ϕ, have h2 := sat (~ϕ), simp at *, tauto, },
-  },
-end
-
--- TODO: move to syntax.lean
-lemma vocMonotone {X Y : finset formula} (hyp : X ⊆ Y) : voc X ⊆ voc Y :=
-begin
-  unfold voc, unfold vocabOfSetFormula at *,
-  intros a aIn,
-  unfold finset.bUnion at *,
-  simp at *,
-  tauto,
-end
-
--- TODO: move to syntax.lean or create new vocabulary.lean ?!
-lemma vocPreserved (X : finset formula) (ψ ϕ) :
-  ψ ∈ X → voc ϕ = voc ψ → voc X = voc (X \ {ψ} ∪ {ϕ}) :=
-begin
-  intros psi_in_X eq_voc,
-  unfold voc at *,
-  unfold vocabOfSetFormula,
-  ext1,
-  split,
-  all_goals { intro a_in, norm_num at *, },
-  { rcases a_in with ⟨θ,_,a_in_vocTheta⟩,
-    by_cases h : θ = ψ,
-    { left, rw eq_voc, rw ← h, exact a_in_vocTheta, },
-    { right, use θ, tauto, },
-  },
-  { cases a_in,
-    { use ψ, rw ← eq_voc, tauto, },
-    { rcases a_in with ⟨θ,_,a_in_vocTheta⟩, use θ, tauto, }
   },
 end
 
@@ -212,7 +182,7 @@ begin
         sorry,
       },
   },
-  case sim : {
+  case sim : X_is_simple {
     -- NOTE: still missing: also need to assume that interpolants for (all partitions of) all end nodes are given!?
     sorry,
   }

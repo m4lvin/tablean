@@ -44,11 +44,25 @@ begin
 end
 
 @[simp]
-lemma singletonSat_iff_sat : ∀ (φ : formula), satisfiable ({ φ } : finset formula) ↔ satisfiable (φ : formula) :=
+lemma singletonSat_iff_sat : ∀ φ, satisfiable ({ φ } : finset formula) ↔ satisfiable φ :=
 begin
   intro phi,
   unfold satisfiable,
   simp,
+end
+
+lemma tautImp_iff_comboNotUnsat {ϕ ψ} : tautology (ϕ ↣ ψ) ↔ ¬satisfiable ({ϕ, ~ψ} : finset formula) :=
+begin
+  unfold tautology,
+  unfold satisfiable,
+  simp,
+  split ;
+  { intro hyp,
+    intros W M w,
+    specialize hyp W M w,
+    intro sat_phi,
+    unfold evaluate at *, simp at *, tauto,
+  },
 end
 
 def semImplies_sets (X : finset formula) (Y : finset formula) := ∀ (W : Type) (M : kripkeModel W) w,
