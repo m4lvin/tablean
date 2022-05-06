@@ -1,42 +1,50 @@
 import syntax
 import semantics
+import completeness
+import partitions
 
 open hasVocabulary vDash
 
 def interpolant (φ : formula) (ψ : formula) (θ : formula) :=
-  φ ⊨ θ  ∧  θ ⊨ ψ  ∧  voc θ ⊆ (voc φ ∩ voc ψ)
+  tautology (φ ↣ θ)  ∧  tautology (θ ↣ ψ)  ∧  voc θ ⊆ (voc φ ∩ voc ψ)
 
--- TODO: should set interpolation be defined using ⊨ or ⊢ or do we need both?
+open has_sat
 
--- NOTE: this notion here is NOT (yet) equivalent to the one used by Borzechowski.
-
-def setInterpolant (X : finset formula) (Y : finset formula) (θ : formula) :=
-  (X ⊨ θ)  ∧  (θ ⊨ Y)  ∧  voc θ ⊆ (voc X ∩ voc Y)
-
-lemma setInterpolation :
-  ∀ (X : finset formula) (Y : finset formula), (X ⊨ Y) → ∃ (θ : formula), setInterpolant X Y θ :=
+lemma tautImp_iff_comboNotUnsat {ϕ ψ : formula} : tautology (ϕ ↣ ψ) ↔  ¬ satisfiable ( {ϕ, ~ψ} : finset formula ) :=
 begin
-  sorry
+  unfold tautology,
+  unfold satisfiable,
+  simp,
+  split ;
+  { intro hyp,
+    intros W M w,
+    specialize hyp W M w,
+    intro sat_phi,
+    unfold evaluate at *, simp at *, tauto,
+  },
 end
 
-lemma interpolation :
-  ∀ (φ : formula) (ψ : formula), (φ ⊨ ψ → ∃ (θ : formula), interpolant φ ψ θ) :=
+lemma interpolation {ϕ ψ} : tautology (ϕ ↣ ψ) → ∃ (θ : formula), interpolant ϕ ψ θ :=
 begin
-  intros φ ψ hyp,
-  have haveInt := setInterpolation {φ} {ψ} (forms_to_sets hyp),
-  cases haveInt with θ haveInt_hyp,
-  use θ,
-  unfold setInterpolant at haveInt_hyp,
-  cases haveInt_hyp with φ_θ haveInt_hyp,
-  cases haveInt_hyp with θ_ψ vocSubs,
-  unfold interpolant,
-  split,
-  { use φ_θ, },
-  split,
-  { use θ_ψ, },
-  { unfold voc, unfold voc at vocSubs,
-    unfold vocabOfSetFormula at vocSubs,
-    simp at vocSubs,
-    exact vocSubs,
+  intros hyp,
+  let X1 : finset formula := {ϕ},
+  let X2 : finset formula := {~ψ},
+  have ctX : closedTableau (X1 ∪ X2), {
+    rw tautImp_iff_comboNotUnsat at hyp,
+    rw ← completeness at hyp, -- using completeness!
+    unfold consistent at hyp,
+    simp at hyp,
+    unfold inconsistent at hyp,
+    change closedTableau {ϕ, ~ψ},
+    exact classical.choice hyp,
   },
+  have partInt := tabToInt ctX, -- using tableau interpolation!
+  rcases partInt with ⟨θ,pI_prop⟩,
+  unfold partInterpolant at pI_prop,
+  use θ,
+  split,
+  { rw tautImp_iff_comboNotUnsat, tauto, },
+  split,
+  { rw tautImp_iff_comboNotUnsat, simp at *, tauto, },
+  { cases pI_prop, unfold voc vocabOfSetFormula at *, simp at *, tauto, },
 end

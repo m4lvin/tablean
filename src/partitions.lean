@@ -13,11 +13,11 @@ def partedLocalTableau (X1 X2) : Type := localTableau (X1 ∪ X2)
 
 
 -- Definition 24
-def interpolant (X1 X2 : finset formula) (θ : formula) :=
+def partInterpolant (X1 X2 : finset formula) (θ : formula) :=
   voc θ ⊆ (voc X1 ∩ voc X2)  ∧  ¬ satisfiable ( X1 ∪ {~θ} )  ∧  ¬ satisfiable ( X2 ∪ {θ} )
 
 -- Lemma 14
-lemma botInter {X1 X2} : ⊥ ∈ (X1 ∪ X2) → ∃ θ, interpolant X1 X2 θ :=
+lemma botInter {X1 X2} : ⊥ ∈ (X1 ∪ X2) → ∃ θ, partInterpolant X1 X2 θ :=
 begin
   intro bot_in_X,
   refine if side : ⊥ ∈ X1 then _ else _,
@@ -39,7 +39,7 @@ begin
     { specialize sat ⊥, simp at *, tauto, },
   }
 end
-lemma notInter {X1 X2 ϕ} : ϕ ∈ (X1 ∪ X2) ∧ ~ϕ ∈ (X1 ∪ X2) → ∃ θ, interpolant X1 X2 θ :=
+lemma notInter {X1 X2 ϕ} : ϕ ∈ (X1 ∪ X2) ∧ ~ϕ ∈ (X1 ∪ X2) → ∃ θ, partInterpolant X1 X2 θ :=
 begin
   intro in_both, cases in_both with pIn nIn,
   by_cases pSide : ϕ ∈ X1, all_goals { by_cases nSide :~ϕ ∈ X1 }, -- four cases
@@ -120,7 +120,7 @@ begin
   },
 end
 
-lemma tabToInt : Π n X, n = lengthOfSet X → ∀ X1 X2, X = X1 ∪ X2 → partedLocalTableau X1 X2 → ∃ θ, interpolant X1 X2 θ :=
+lemma localTabToInt : Π n X, n = lengthOfSet X → ∀ X1 X2, X = X1 ∪ X2 → partedLocalTableau X1 X2 → ∃ θ, partInterpolant X1 X2 θ :=
 begin
   intro N,
   apply nat.strong_induction_on N,
@@ -139,32 +139,26 @@ begin
         { -- case ~~ϕ ∈ X1
           subst defX,
           let newX1 := X1 \ {~~ϕ} ∪ {ϕ},
-          let newX2 := X2 \ {~~ϕ}, -- trying to deal with the annoying overlap case
-          set m := lengthOfSet (newX1 ∪ newX2),
-          have yclaim : newX1 ∪ newX2 ∈ ({ (X1 ∪ X2) \ {~~ϕ} ∪ {ϕ} } : finset (finset formula)), {
+          let newX2 := X2 \ {~~ϕ}, -- to deal with possible overlap
+          have yclaim : newX1 ∪ newX2 ∈ { (X1 ∪ X2) \ {~~ϕ} ∪ {ϕ} }, {
             rw finset.mem_singleton,
             change (X1 \ {~~ϕ} ∪ {ϕ}) ∪ (X2 \ {~~ϕ}) = (X1 ∪ X2) \ {~~ϕ} ∪ {ϕ},
-            simp,
-            ext1 a, split,
-            { intro lhs, simp at *, cases lhs,
-              { left, assumption, },
-              cases lhs ; { right, tauto, },
-            },
-            { intro rhs, simp at *, tauto, },
+            ext1 a, split ; { intro hyp, simp at hyp, simp, tauto, },
           },
+          set m := lengthOfSet (newX1 ∪ newX2),
           have m_lt_n : m < n, {
             rw lenX_is_n,
             exact localRulesDecreaseLength (localRule.neg (by {finish} : ~~ϕ ∈ X1 ∪ X2)) (newX1 ∪ newX2) yclaim,
           },
           specialize IH m m_lt_n (newX1 ∪ newX2) (by refl) newX1 newX2,
           have ltNew := next (newX1 ∪ newX2) yclaim,
-          have childInt : Exists (interpolant newX1 newX2), {
+          have childInt : Exists (partInterpolant newX1 newX2), {
             apply IH (by refl) ltNew,
           },
           cases childInt with θ theta_is_chInt,
           rcases theta_is_chInt with ⟨vocSub,noSatX1,noSatX2⟩,
           use θ,
-          unfold interpolant at *,
+          unfold partInterpolant at *,
           split,
           { rw vocPreserved X1 (~~ϕ) ϕ notnotphi_in (by {unfold voc, simp, }),
             change voc θ ⊆ voc newX1 ∩ voc X2,
@@ -219,7 +213,20 @@ begin
       },
   },
   case sim : {
-    -- NOTE: still missing: also need to assume that interpolants for end nodes are given!?
+    -- NOTE: still missing: also need to assume that interpolants for (all partitions of) all end nodes are given!?
     sorry,
   }
+end
+
+-- tableau interpolation -- IDEA: similar to almostCompleteness
+lemma almostTabToInt : Π n X, n = lengthOfSet X → ∀ X1 X2, X = X1 ∪ X2 → closedTableau X → ∃ θ, partInterpolant X1 X2 θ :=
+begin
+  sorry,
+end
+
+lemma tabToInt {X1 X2} : closedTableau (X1 ∪ X2) → ∃ θ, partInterpolant X1 X2 θ :=
+begin
+  apply almostTabToInt,
+  refl,
+  simp,
 end
