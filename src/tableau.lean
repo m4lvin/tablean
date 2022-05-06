@@ -134,6 +134,7 @@ inductive localRule : finset formula → finset (finset formula) → Type
 -- If X is not simple, then a local rule can be applied.
 -- (page 13)
 lemma notSimpleThenLocalRule { X } :
+  -- TODO write this as: nonempty (Σ B, localRule X B)
   ¬ simple X → (∃ B (_ : localRule X B), true) :=
 begin
   intro notSimple,

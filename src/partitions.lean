@@ -2,6 +2,7 @@
 import syntax
 import tableau
 import semantics
+import soundness
 import vocabulary
 
 open hasVocabulary has_sat
@@ -191,7 +192,35 @@ end
 -- tableau interpolation -- IDEA: similar to almostCompleteness
 lemma almostTabToInt : Π n X, n = lengthOfSet X → ∀ X1 X2, X = X1 ∪ X2 → closedTableau X → ∃ θ, partInterpolant X1 X2 θ :=
 begin
-  sorry,
+  intro n,
+  apply nat.strong_induction_on n,
+  intros n IH,
+  intros X lX_is_n X1 X2 defX ctX,
+  refine if simpX : simple X then _ else _,
+  -- CASE 1: X is simple
+  cases ctX,
+  case loc: {
+    apply localTabToInt _ X (by refl) X1 X2 defX,
+    unfold partedLocalTableau, rw defX at *, assumption,
+  },
+  case atm: {
+    sorry, -- TODO, do we need interpolants for endNodesOf assumption here?
+  },
+  -- CASE 2: X is not simple
+  rename simpX notSimpX,
+  have foo := notSimpleThenLocalRule notSimpX,
+  rcases foo with ⟨B,lr,_⟩,
+  have rest : Π (Y : finset formula), Y ∈ B → localTableau Y, {
+    intros Y Y_in_B,
+    set N := hasLength.lengthOf Y,
+    have h := existsLocalTableauFor N Y,
+    simp at h,
+    exact classical.some h,
+  },
+  apply localTabToInt _ X (by refl) X1 X2 defX,
+  unfold partedLocalTableau,
+  rw ← defX,
+  exact localTableau.byLocalRule lr rest,
 end
 
 lemma tabToInt {X1 X2} : closedTableau (X1 ∪ X2) → ∃ θ, partInterpolant X1 X2 θ :=
