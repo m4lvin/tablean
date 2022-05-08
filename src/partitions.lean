@@ -137,10 +137,8 @@ begin
             tauto,
           },
           split,
-          { by_contradiction hyp,
-            unfold satisfiable at hyp,
-            rcases hyp with ⟨W,M,w,sat⟩,
-            have : satisfiable (newX1 ∪ {~θ}), {
+          all_goals { by_contradiction hyp, unfold satisfiable at hyp, rcases hyp with ⟨W,M,w,sat⟩, },
+          { have : satisfiable (newX1 ∪ {~θ}), {
               unfold satisfiable,
               use [W,M,w],
               intros ψ psi_in_newX_u_notTheta,
@@ -151,16 +149,12 @@ begin
               { apply sat, simp at *, tauto, },
               { rw psi_in_newX_u_notTheta, apply of_not_not,
                 change evaluate (M, w) (~~ϕ),
-                specialize sat (~~ϕ),
-                apply sat, simp, right, assumption,
+                apply sat (~~ϕ), simp, right, assumption,
               },
             },
             tauto,
           },
-          { by_contradiction hyp,
-            unfold satisfiable at hyp,
-            rcases hyp with ⟨W,M,w,sat⟩,
-            have : satisfiable (newX2 ∪ {θ}), {
+          { have : satisfiable (newX2 ∪ {θ}), {
               unfold satisfiable at *,
               use [W,M,w],
               intros ψ psi_in_newX2cupTheta,
@@ -229,9 +223,9 @@ begin
       rw ← yclaim at ctProjNotPhi,
       have m_lt_n : lengthOfSet (newX1 ∪ newX2) < n, {
          calc lengthOfSet (newX1 ∪ newX2)
-            = lengthOfSet (projection (X1 ∪ X2) ∪ {~ϕ}) : by { rw yclaim, }
+            = lengthOfSet (projection (X1 ∪ X2) ∪ {~ϕ}) : by rw yclaim
         ... < lengthOfSet (X1 ∪ X2) : atmRuleDecreasesLength (by {simp, tauto} : ~□ϕ ∈ X1 ∪ X2)
-        ... = n : by { tauto, } ,
+        ... = n : by tauto,
       },
       have nextInt : ∃ θ, partInterpolant newX1 newX2 θ :=
         IH _ m_lt_n (newX1 ∪ newX2) (by refl) (by refl) ctProjNotPhi,
@@ -241,15 +235,13 @@ begin
       -- it remains to show the three properties of the interpolant
       { change voc θ ⊆ voc X1 ∩ voc X2,
         have inc1 : voc newX1 ⊆ voc X1, {
-          intros a aIn, unfold voc vocabOfSetFormula finset.bUnion at *, simp at aIn,
-          simp,
+          intros a aIn, unfold voc vocabOfSetFormula finset.bUnion at *, simp at *,
           rcases aIn with ⟨ψ,psi_in_projX1|psi_is_notPhi⟩,
           { use □ψ, change □ψ ∈ X1 ∧ a ∈ voc □ψ, rw ← proj, tauto, },
-          { use ~□ϕ, split, assumption, subst psi_is_notPhi, tauto, }
+          { use ~□ϕ, subst psi_is_notPhi, tauto, }
         },
         have inc2 : voc newX2 ⊆ voc X2, {
-          intros a aIn, unfold voc vocabOfSetFormula finset.bUnion at *, simp at aIn,
-          simp,
+          intros a aIn, unfold voc vocabOfSetFormula finset.bUnion at *, simp at *,
           rcases aIn with ⟨ψ,psi_in_projX2⟩,
           { use □ψ, change □ψ ∈ X2 ∧ a ∈ voc □ψ, rw ← proj, tauto, },
         },
@@ -273,10 +265,7 @@ begin
         intros ψ psi_in_newX1,
         simp at psi_in_newX1,
         cases psi_in_newX1,
-        { subst psi_in_newX1, unfold evaluate, specialize sat (~~□~θ), simp at sat,
-          unfold evaluate at sat, simp at sat,
-          exact sat v rel_w_v,
-        },
+        { subst psi_in_newX1, specialize sat (~~□~θ), unfold evaluate at *, simp at sat, exact sat v rel_w_v, },
         cases psi_in_newX1,
         { rw proj at psi_in_newX1, specialize sat □ψ, unfold evaluate at sat, apply sat, simp, assumption, assumption, },
         { subst psi_in_newX1, unfold evaluate, assumption, },
@@ -297,7 +286,6 @@ begin
         { subst psi_in_newX2, assumption, },
         { rw proj at psi_in_newX2, specialize sat □ψ, unfold evaluate at sat, apply sat, simp, assumption, assumption, },
       },
-
     },
     {  -- case ~□ϕ ∈ X2
       let newX1 := projection X1,
