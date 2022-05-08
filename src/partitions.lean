@@ -91,7 +91,7 @@ begin
   },
 end
 
-lemma localTabToInt : Π n X, n = lengthOfSet X → ∀ X1 X2, X = X1 ∪ X2 → partedLocalTableau X1 X2 → ∃ θ, partInterpolant X1 X2 θ :=
+lemma localTabToInt : Π n X, n = lengthOfSet X → ∀ {X1 X2}, X = X1 ∪ X2 → partedLocalTableau X1 X2 → ∃ θ, partInterpolant X1 X2 θ :=
 begin
   intro N,
   apply nat.strong_induction_on N,
@@ -121,11 +121,8 @@ begin
             rw lenX_is_n,
             exact localRulesDecreaseLength (localRule.neg (by {finish} : ~~ϕ ∈ X1 ∪ X2)) (newX1 ∪ newX2) yclaim,
           },
-          specialize IH m m_lt_n (newX1 ∪ newX2) (by refl) newX1 newX2,
-          have ltNew := next (newX1 ∪ newX2) yclaim,
-          have childInt : Exists (partInterpolant newX1 newX2), {
-            apply IH (by refl) ltNew,
-          },
+          have childInt : Exists (partInterpolant newX1 newX2) :=
+            IH m m_lt_n (newX1 ∪ newX2) (by refl) (by refl) (next (newX1 ∪ newX2) yclaim),
           cases childInt with θ theta_is_chInt,
           rcases theta_is_chInt with ⟨vocSub,noSatX1,noSatX2⟩,
           use θ,
@@ -189,38 +186,77 @@ begin
   }
 end
 
+lemma vocProj (X) : voc (projection X) ⊆ voc X :=
+begin
+  unfold voc vocabOfFormula vocabOfSetFormula,
+  simp,
+  intros ϕ phi_in_proj,
+  rw proj at phi_in_proj,
+  intros a aInVocPhi,
+  simp,
+  tauto,
+end
+
+lemma projUnion {X Y} : projection (X ∪ Y) = projection X ∪ projection Y :=
+begin
+  unfold projection finset.bUnion,
+  ext1,
+  split ; finish,
+end
+
 -- tableau interpolation -- IDEA: similar to almostCompleteness
-lemma almostTabToInt : Π n X, n = lengthOfSet X → ∀ X1 X2, X = X1 ∪ X2 → closedTableau X → ∃ θ, partInterpolant X1 X2 θ :=
+-- part of this is part of Lemma 15
+lemma almostTabToInt : Π {n} X, n = lengthOfSet X → ∀ {X1 X2}, X = X1 ∪ X2 → closedTableau X → ∃ θ, partInterpolant X1 X2 θ :=
 begin
   intro n,
   apply nat.strong_induction_on n,
   intros n IH,
   intros X lX_is_n X1 X2 defX ctX,
-  refine if simpX : simple X then _ else _,
-  -- CASE 1: X is simple
   cases ctX,
-  case loc: {
-    apply localTabToInt _ X (by refl) X1 X2 defX,
+  case loc: X ltX next { -- CASE: X is not simple
+    apply localTabToInt _ X (by refl) defX,
+    -- TODO: use IH to get interpolants for everything in "next"
     unfold partedLocalTableau, rw defX at *, assumption,
   },
-  case atm: {
-    sorry, -- TODO, do we need interpolants for endNodesOf assumption here?
+  case atm: X ϕ notBoxPhi_in_X simpleX ctProjNotPhi { -- CASE: X is simple
+    subst defX,
+    simp at *,
+    cases notBoxPhi_in_X,
+    { -- case ~□ϕ ∈ X1
+      let newX1 := projection X1 ∪ { ~ϕ },
+      let newX2 := projection X2,
+      have yclaim : newX1 ∪ newX2 = projection (X1 ∪ X2) ∪ {~ϕ}, { rw projUnion, ext1, simp, tauto, },
+      rw ← yclaim at ctProjNotPhi,
+      have m_lt_n : lengthOfSet (newX1 ∪ newX2) < n, {
+         calc lengthOfSet (newX1 ∪ newX2)
+            = lengthOfSet (projection (X1 ∪ X2) ∪ {~ϕ}) : by { rw yclaim, }
+        ... < lengthOfSet (X1 ∪ X2) : atmRuleDecreasesLength (by {simp, tauto} : ~□ϕ ∈ X1 ∪ X2)
+        ... = n : by { tauto, } ,
+      },
+      have nextInt : ∃ θ, partInterpolant newX1 newX2 θ :=
+        IH _ m_lt_n (newX1 ∪ newX2) (by refl) (by refl) ctProjNotPhi,
+      rcases nextInt with ⟨θ,vocSub,unsat1,unsat2⟩,
+      use ~□~θ,
+      repeat { split, },
+      { intros a a_in_vocTheta,
+        unfold voc vocabOfFormula at *, simp at *,
+        split,
+        { apply vocProj X1, unfold voc vocabOfSetFormula, simp, sorry, },
+        { apply vocProj X2, sorry, },
+      },
+      unfold satisfiable at *,
+      { by_contradiction hyp, rcases hyp with ⟨W,M,w,sat⟩, apply unsat1, use [W,M,w], intros ϕ phi_in_newX1,
+        sorry,
+      },
+      { sorry, },
+    },
+    {  -- case ~□ϕ ∈ X2
+      let newX1 := projection X1,
+      let newX2 := projection X2 ∪ { ~ϕ },
+      sorry,
+      -- TODO: use □θ,
+    },
   },
-  -- CASE 2: X is not simple
-  rename simpX notSimpX,
-  have foo := notSimpleThenLocalRule notSimpX,
-  rcases foo with ⟨B,lr,_⟩,
-  have rest : Π (Y : finset formula), Y ∈ B → localTableau Y, {
-    intros Y Y_in_B,
-    set N := hasLength.lengthOf Y,
-    have h := existsLocalTableauFor N Y,
-    simp at h,
-    exact classical.some h,
-  },
-  apply localTabToInt _ X (by refl) X1 X2 defX,
-  unfold partedLocalTableau,
-  rw ← defX,
-  exact localTableau.byLocalRule lr rest,
 end
 
 lemma tabToInt {X1 X2} : closedTableau (X1 ∪ X2) → ∃ θ, partInterpolant X1 X2 θ :=
