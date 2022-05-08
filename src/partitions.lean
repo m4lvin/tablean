@@ -9,10 +9,6 @@ open hasVocabulary has_sat
 
 def partition := finset formula × finset formula
 
-def partedTableau (X1 X2) : Type := closedTableau (X1 ∪ X2)
-
-def partedLocalTableau (X1 X2) : Type := localTableau (X1 ∪ X2)
-
 
 -- Definition 24
 def partInterpolant (X1 X2 : finset formula) (θ : formula) :=
@@ -91,22 +87,27 @@ begin
   },
 end
 
-lemma localTabToInt : Π n X, n = lengthOfSet X → ∀ {X1 X2}, X = X1 ∪ X2 → partedLocalTableau X1 X2 → ∃ θ, partInterpolant X1 X2 θ :=
+lemma localTabToInt : Π n X,
+  n = lengthOfSet X →
+    ∀ {X1 X2}, X = X1 ∪ X2 →
+      (∃ ltX : localTableau X, (∀ Y1 Y2, Y1 ∪ Y2 ∈ endNodesOf ⟨X, ltX⟩ → ∃ θ, partInterpolant Y1 Y2 θ)) →
+        ∃ θ, partInterpolant X1 X2 θ :=
 begin
   intro N,
   apply nat.strong_induction_on N,
   intros n IH,
   intros X lenX_is_n X1 X2 defX pt,
-  unfold partedLocalTableau at pt,
+  rcases pt with ⟨pt,nextInter⟩,
   cases pt,
-  case byLocalRule : B lr next {
+  case byLocalRule : X B lr next {
     cases lr,
       -- The bot and not cases use Lemma 14
-      case bot : bot_in_X { exact botInter bot_in_X, },
-      case not : ϕ in_both { exact notInter in_both },
-      case neg : ϕ notnotphi_in {
+      case bot : X bot_in_X { rw defX at bot_in_X, exact botInter bot_in_X, },
+      case not : X ϕ in_both { rw defX at in_both, exact notInter in_both },
+      case neg : X ϕ notnotphi_in {
+        have notnotphi_in_union : ~~ϕ ∈ X1 ∪ X2, { rw defX at notnotphi_in, assumption, },
         simp at *,
-        cases notnotphi_in,
+        cases notnotphi_in_union,
         { -- case ~~ϕ ∈ X1
           subst defX,
           let newX1 := X1 \ {~~ϕ} ∪ {ϕ},
@@ -121,14 +122,18 @@ begin
             rw lenX_is_n,
             exact localRulesDecreaseLength (localRule.neg (by {finish} : ~~ϕ ∈ X1 ∪ X2)) (newX1 ∪ newX2) yclaim,
           },
+          have nextNextInter : (∀ (Y1 Y2 : finset formula), Y1 ∪ Y2 ∈ endNodesOf ⟨newX1 ∪ newX2, (next (newX1 ∪ newX2) yclaim)⟩ → Exists (partInterpolant Y1 Y2)), {
+            intros Y1 Y2, apply nextInter, finish,
+          },
           have childInt : Exists (partInterpolant newX1 newX2) :=
-            IH m m_lt_n (newX1 ∪ newX2) (by refl) (by refl) (next (newX1 ∪ newX2) yclaim),
+            IH m m_lt_n (newX1 ∪ newX2) (by refl) (by refl) (next (newX1 ∪ newX2) yclaim) nextNextInter,
           cases childInt with θ theta_is_chInt,
           rcases theta_is_chInt with ⟨vocSub,noSatX1,noSatX2⟩,
           use θ,
           unfold partInterpolant at *,
+          simp,
           split,
-          { rw vocPreserved X1 (~~ϕ) ϕ notnotphi_in (by {unfold voc, simp, }),
+          { rw vocPreserved X1 (~~ϕ) ϕ notnotphi_in_union (by {unfold voc, simp, }),
             change voc θ ⊆ voc newX1 ∩ voc X2,
             have : voc newX2 ⊆ voc X2 , { apply vocMonotone, simp, },
             intros a aInVocTheta,
@@ -174,9 +179,10 @@ begin
         sorry,
       },
   },
-  case sim : X_is_simple {
-    -- NOTE: still missing: also need to assume that interpolants for (all partitions of) all end nodes are given!?
-    sorry,
+  case sim : X X_is_simple {
+    apply nextInter,
+    unfold endNodesOf,
+    rw defX, simp,
   }
 end
 
@@ -198,6 +204,8 @@ begin
   split ; finish,
 end
 
+open hasLength
+
 -- tableau interpolation -- IDEA: similar to almostCompleteness
 -- part of this is part of Lemma 15
 lemma almostTabToInt : Π {n} X, n = lengthOfSet X → ∀ {X1 X2}, X = X1 ∪ X2 → closedTableau X → ∃ θ, partInterpolant X1 X2 θ :=
@@ -208,9 +216,28 @@ begin
   intros X lX_is_n X1 X2 defX ctX,
   cases ctX,
   case loc: X ltX next { -- CASE: X is not simple
-    apply localTabToInt _ X (by refl) defX,
+    have nextLtAndInter : (∃ ltX : localTableau X, (∀ Y1 Y2, Y1 ∪ Y2 ∈ endNodesOf ⟨X, ltX⟩ → ∃ θ, partInterpolant Y1 Y2 θ)), {
+      use ltX,
+      intros Y1 Y2 y_is_endOfX,
+      specialize next (Y1 ∪ Y2) y_is_endOfX,
+      apply IH _ _ (Y1 ∪ Y2) (by refl) (by refl) next,
+      -- remains to show:  |Y1 ∪ Y2| < n
+      rw lX_is_n,
+      cases ltX,
+      case byLocalRule: X B lr next {
+        have y_is_endOfLocalX : Y1 ∪ Y2 ∈ endNodesOf ⟨X, localTableau.byLocalRule lr next⟩, { assumption, },
+        exact endNodesOfLocalRuleLT y_is_endOfLocalX,
+      },
+      case sim: {
+        sorry,
+        -- Stuck! do we actually know that X is simple???
+        -- Maybe replace "cases ctX" above with "cases simple X"???
+        -- OR use notSimpleThenLocalRule, as done in almostCompleteness ???
+        -- OR change def of closedTableau to only allow loc when X is not simple ??? (does this break the completeness proof?)
+      },
+    },
+    exact localTabToInt _ X (by refl) defX nextLtAndInter,
     -- TODO: use IH to get interpolants for everything in "next" -- NEXT HERE !!!
-    unfold partedLocalTableau, rw defX at *, assumption,
   },
   case atm: X ϕ notBoxPhi_in_X simpleX ctProjNotPhi { -- CASE: X is simple
     subst defX,
