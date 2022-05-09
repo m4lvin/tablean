@@ -166,3 +166,20 @@ begin
     },
   },
 end
+
+-- Problematic "infinite not-progressing tableau"
+def explosion : nonempty (closedTableau { p }) :=
+begin
+  fconstructor,
+  -- this should not be allowed, proof checking takes forever!
+  -- repeat {
+    apply closedTableau.loc,
+    rotate,
+    apply localTableau.sim,
+    { unfold simple, simp, },
+    intros Y Yin,
+    simp at Yin,
+    subst Yin,
+  -- },
+  sorry,
+end
