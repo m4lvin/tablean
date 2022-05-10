@@ -67,3 +67,19 @@ begin
     { rcases a_in with ⟨θ,_,a_in_vocTheta⟩, use θ, tauto, }
   },
 end
+
+
+lemma vocPreservedTwo {X : finset formula} (ψ ϕ1 ϕ2) :
+  ψ ∈ X → voc ({ϕ1,ϕ2} : finset formula) = voc ψ → voc X = voc (X \ {ψ} ∪ {ϕ1,ϕ2}) :=
+begin
+  intros psi_in_X eq_voc,
+  unfold voc at *,
+  unfold vocabOfSetFormula,
+  ext1,
+  split,
+  all_goals { intro a_in, norm_num at *, },
+  { sorry,
+  },
+  { sorry,
+  },
+end
