@@ -95,3 +95,15 @@ begin
   { rcases a_in with ⟨θ,theta_in_X,a_in_vocTheta⟩, use θ, itauto, },
   { use ψ, split, itauto, rw ← eq_voc, unfold vocabOfSetFormula, simp, itauto, },
 end
+
+lemma vocPreservedSub {X : finset formula} (ψ ϕ) :
+  ψ ∈ X → voc ϕ ⊆ voc ψ → voc (X \ {ψ} ∪ {ϕ}) ⊆ voc X :=
+begin
+  intros psi_in_X sub_voc,
+  unfold voc at *,
+  unfold vocabOfSetFormula,
+  intros a a_in, norm_num at *,
+  cases a_in,
+  { use ψ, rw finset.subset_iff at sub_voc, tauto, },
+  { rcases a_in with ⟨θ,_,a_in_vocTheta⟩, use θ, tauto, },
+end
