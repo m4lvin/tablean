@@ -208,38 +208,21 @@ open hasLength
 
 -- tableau interpolation -- IDEA: similar to almostCompleteness
 -- part of this is part of Lemma 15
-lemma almostTabToInt : Π {n} X, n = lengthOfSet X → ∀ {X1 X2}, X = X1 ∪ X2 → closedTableau X → ∃ θ, partInterpolant X1 X2 θ :=
+lemma almostTabToInt {X} (ctX : closedTableau X) : Π X1 X2, X = X1 ∪ X2 → ∃ θ, partInterpolant X1 X2 θ :=
 begin
-  intro n,
-  apply nat.strong_induction_on n,
-  intros n IH,
-  intros X lX_is_n X1 X2 defX ctX,
-  cases ctX,
-  case loc: X ltX next { -- CASE: X is not simple
+  induction ctX,
+  case loc: X ltX next IH {
+    intros X1 X2 defX,
     have nextLtAndInter : (∃ ltX : localTableau X, (∀ Y1 Y2, Y1 ∪ Y2 ∈ endNodesOf ⟨X, ltX⟩ → ∃ θ, partInterpolant Y1 Y2 θ)), {
       use ltX,
       intros Y1 Y2 y_is_endOfX,
       specialize next (Y1 ∪ Y2) y_is_endOfX,
-      apply IH _ _ (Y1 ∪ Y2) (by refl) (by refl) next,
-      -- remains to show:  |Y1 ∪ Y2| < n
-      rw lX_is_n,
-      cases ltX,
-      case byLocalRule: X B lr next {
-        have y_is_endOfLocalX : Y1 ∪ Y2 ∈ endNodesOf ⟨X, localTableau.byLocalRule lr next⟩, { assumption, },
-        exact endNodesOfLocalRuleLT y_is_endOfLocalX,
-      },
-      case sim: {
-        sorry,
-        -- Stuck! do we actually know that X is simple???
-        -- Maybe replace "cases ctX" above with "cases simple X"???
-        -- OR use notSimpleThenLocalRule, as done in almostCompleteness ???
-        -- OR change def of closedTableau to only allow loc when X is not simple ??? (does this break the completeness proof?)
-      },
+      exact IH (Y1 ∪ Y2) y_is_endOfX Y1 Y2 (by refl),
     },
     exact localTabToInt _ X (by refl) defX nextLtAndInter,
-    -- TODO: use IH to get interpolants for everything in "next" -- NEXT HERE !!!
   },
-  case atm: X ϕ notBoxPhi_in_X simpleX ctProjNotPhi { -- CASE: X is simple
+  case atm: X ϕ notBoxPhi_in_X simpleX ctProjNotPhi IH {
+    intros X1 X2 defX,
     subst defX,
     simp at *,
     cases notBoxPhi_in_X,
@@ -248,14 +231,8 @@ begin
       let newX2 := projection X2,
       have yclaim : newX1 ∪ newX2 = projection (X1 ∪ X2) ∪ {~ϕ}, { rw projUnion, ext1, simp, tauto, },
       rw ← yclaim at ctProjNotPhi,
-      have m_lt_n : lengthOfSet (newX1 ∪ newX2) < n, {
-         calc lengthOfSet (newX1 ∪ newX2)
-            = lengthOfSet (projection (X1 ∪ X2) ∪ {~ϕ}) : by rw yclaim
-        ... < lengthOfSet (X1 ∪ X2) : atmRuleDecreasesLength (by {simp, tauto} : ~□ϕ ∈ X1 ∪ X2)
-        ... = n : by tauto,
-      },
       have nextInt : ∃ θ, partInterpolant newX1 newX2 θ :=
-        IH _ m_lt_n (newX1 ∪ newX2) (by refl) (by refl) ctProjNotPhi,
+        IH newX1 newX2 (by {rw yclaim, simp,}),
       rcases nextInt with ⟨θ,vocSub,unsat1,unsat2⟩,
       use ~□~θ,
       repeat { split, },
@@ -323,9 +300,5 @@ begin
   },
 end
 
-lemma tabToInt {X1 X2} : closedTableau (X1 ∪ X2) → ∃ θ, partInterpolant X1 X2 θ :=
-begin
-  apply almostTabToInt,
-  refl,
-  simp,
-end
+lemma tabToInt {X1 X2} : closedTableau (X1 ∪ X2) → ∃ θ, partInterpolant X1 X2 θ
+| ctX := almostTabToInt ctX X1 X2 (by refl)
