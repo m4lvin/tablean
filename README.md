@@ -21,7 +21,7 @@ Hint: This will be faster if you first do `leanproject get-mathlib-cache`.
 
 - [x] Soundness
 - [x] Completeness
-- [ ] Interpolation
+- [x] Interpolation
 
 Module dependency overview:
 
