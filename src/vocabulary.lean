@@ -48,6 +48,14 @@ begin
   tauto,
 end
 
+lemma vocUnion {X Y : finset formula} : voc (X ∪ Y) = voc X ∪ voc Y :=
+begin
+  unfold voc vocabOfSetFormula,
+  ext1,
+  simp,
+  split ; { intro _, finish, },
+end
+
 lemma vocPreserved (X : finset formula) (ψ ϕ) :
   ψ ∈ X → voc ϕ = voc ψ → voc X = voc (X \ {ψ} ∪ {ϕ}) :=
 begin
@@ -68,18 +76,22 @@ begin
   },
 end
 
-
 lemma vocPreservedTwo {X : finset formula} (ψ ϕ1 ϕ2) :
   ψ ∈ X → voc ({ϕ1,ϕ2} : finset formula) = voc ψ → voc X = voc (X \ {ψ} ∪ {ϕ1,ϕ2}) :=
 begin
   intros psi_in_X eq_voc,
+  rw vocUnion,
   unfold voc at *,
   unfold vocabOfSetFormula,
   ext1,
   split,
   all_goals { intro a_in, norm_num at *, },
-  { sorry,
+  { rcases a_in with ⟨θ,theta_in_X,a_in_vocTheta⟩,
+    by_cases h : θ = ψ,
+    { right, subst h, unfold vocabOfSetFormula vocabOfFormula at *, simp at *, rw ← eq_voc at a_in_vocTheta, simp at a_in_vocTheta, tauto, },
+    { use θ, itauto, },
   },
-  { sorry,
-  },
+  cases a_in,
+  { rcases a_in with ⟨θ,theta_in_X,a_in_vocTheta⟩, use θ, itauto, },
+  { use ψ, split, itauto, rw ← eq_voc, unfold vocabOfSetFormula, simp, itauto, },
 end
