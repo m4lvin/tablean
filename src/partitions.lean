@@ -261,8 +261,8 @@ end
 lemma nCoInterpolantX2 {X1 X2 ϕ ψ θa θb} :
   ~(ϕ⋏ψ) ∈ X2 →
     partInterpolant (X1 \ {~(ϕ⋏ψ)}) (X2 \ {~(ϕ⋏ψ)} ∪ {~ϕ}) θa →
-      partInterpolant (X1 \ {~(ϕ⋏ψ)} ∪ {~ψ}) (X2 \ {~(ϕ⋏ψ)} ∪ {~ϕ}) θb →
-        partInterpolant X1 X2 (~(~θa ⋏ ~θb)) :=
+      partInterpolant (X1 \ {~(ϕ⋏ψ)}) (X2 \ {~(ϕ⋏ψ)} ∪ {~ψ}) θb →
+        partInterpolant X1 X2 (θa ⋏ θb) :=
 begin
   sorry,
 end
@@ -455,10 +455,52 @@ begin
           exact nCoInterpolantX1 nCo_in_union a_theta_is_chInt b_theta_is_chInt,
         },
         { -- case ~(ϕ⋏ψ) ∈ X2
-          -- TODO: use θa ⋏ θb
-          sorry,
+          subst defX,
+          -- splitting rule!
+          -- first get an interpolant for the ~ϕ branch:
+          let a_newX1 := X1 \ {~(ϕ⋏ψ)},
+          let a_newX2 := X2 \ {~(ϕ⋏ψ)} ∪ {~ϕ},
+          have a_yclaim : a_newX1 ∪ a_newX2 ∈ ({ (X1 ∪ X2) \ {~(ϕ⋏ψ)} ∪ {~ϕ},  (X1 ∪ X2) \ {~(ϕ⋏ψ)} ∪ {~ψ} } : finset (finset formula)),
+            { simp, left, ext1 a, split ; { intro hyp, simp at hyp, simp, tauto, }, },
+          set a_m := lengthOfSet (a_newX1 ∪ a_newX2),
+          have a_m_lt_n : a_m < n, {
+            rw lenX_is_n,
+            exact localRulesDecreaseLength (localRule.nCo (by {finish} : ~(ϕ⋏ψ) ∈ X1 ∪ X2)) (a_newX1 ∪ a_newX2) a_yclaim,
+          },
+          have a_childInt : Exists (partInterpolant a_newX1 a_newX2), {
+            apply IH a_m a_m_lt_n (a_newX1 ∪ a_newX2) (by refl) (by refl),
+            fconstructor,
+            apply next (a_newX1 ∪ a_newX2) a_yclaim, -- remains to show nextNextInter
+            intros Y1 Y2 Y_in, apply nextInter, unfold endNodesOf,
+            simp only [endNodesOf, finset.mem_mk, multiset.mem_singleton, finset.mem_bUnion, finset.mem_attach, exists_true_left, subtype.exists],
+            use a_newX1 ∪ a_newX2,
+            split, exact Y_in, tauto,
+          },
+          cases a_childInt with θa a_theta_is_chInt,
+          -- now get an interpolant for the ~ψ branch:
+          let b_newX1 := X1 \ {~(ϕ⋏ψ)},
+          let b_newX2 := X2 \ {~(ϕ⋏ψ)} ∪ {~ψ},
+          have b_yclaim : b_newX1 ∪ b_newX2 ∈ ({ (X1 ∪ X2) \ {~(ϕ⋏ψ)} ∪ {~ϕ},  (X1 ∪ X2) \ {~(ϕ⋏ψ)} ∪ {~ψ} } : finset (finset formula)),
+            { simp, right, ext1 a, split ; { intro hyp, simp at hyp, simp, tauto, }, },
+          set b_m := lengthOfSet (b_newX1 ∪ b_newX2),
+          have b_m_lt_n : b_m < n, {
+            rw lenX_is_n,
+            exact localRulesDecreaseLength (localRule.nCo (by {finish} : ~(ϕ⋏ψ) ∈ X1 ∪ X2)) (b_newX1 ∪ b_newX2) b_yclaim,
+          },
+          have b_childInt : Exists (partInterpolant b_newX1 b_newX2), {
+            apply IH b_m b_m_lt_n (b_newX1 ∪ b_newX2) (by refl) (by refl),
+            fconstructor,
+            apply next (b_newX1 ∪ b_newX2) b_yclaim, -- remains to show nextNextInter
+            intros Y1 Y2 Y_in, apply nextInter, unfold endNodesOf,
+            simp only [endNodesOf, finset.mem_mk, multiset.mem_singleton, finset.mem_bUnion, finset.mem_attach, exists_true_left, subtype.exists],
+            use b_newX1 ∪ b_newX2,
+            split, exact Y_in, tauto,
+          },
+          cases b_childInt with θb b_theta_is_chInt,
+          -- finally, combine the two interpolants using conjunction:
+          use θa ⋏ θb,
+          exact nCoInterpolantX2 nCo_in_union a_theta_is_chInt b_theta_is_chInt,
         },
-
       },
   },
   case sim : X X_is_simple {
