@@ -169,7 +169,69 @@ begin
           },
         },
         { -- case ~~ϕ ∈ X2
-          sorry,
+          ---- based on copy-paste from previous case, changes marked with "!" ---
+          subst defX,
+          let newX1 := X1 \ {~~ϕ}, -- to deal with possible overlap -- !
+          let newX2 := X2 \ {~~ϕ} ∪ {ϕ}, -- !
+          have yclaim : newX1 ∪ newX2 ∈ { (X1 ∪ X2) \ {~~ϕ} ∪ {ϕ} }, {
+            rw finset.mem_singleton,
+            change (X1 \ {~~ϕ}) ∪ (X2 \ {~~ϕ} ∪ {ϕ}) = (X1 ∪ X2) \ {~~ϕ} ∪ {ϕ}, -- !
+            ext1 a, split ; { intro hyp, simp at hyp, simp, tauto, },
+          },
+          set m := lengthOfSet (newX1 ∪ newX2),
+          have m_lt_n : m < n, {
+            rw lenX_is_n,
+            exact localRulesDecreaseLength (localRule.neg (by {finish} : ~~ϕ ∈ X1 ∪ X2)) (newX1 ∪ newX2) yclaim,
+          },
+          have nextNextInter : (∀ (Y1 Y2 : finset formula), Y1 ∪ Y2 ∈ endNodesOf ⟨newX1 ∪ newX2, (next (newX1 ∪ newX2) yclaim)⟩ → Exists (partInterpolant Y1 Y2)), {
+            intros Y1 Y2, apply nextInter, finish,
+          },
+          have childInt : Exists (partInterpolant newX1 newX2) :=
+            IH m m_lt_n (newX1 ∪ newX2) (by refl) (by refl) (next (newX1 ∪ newX2) yclaim) nextNextInter,
+          cases childInt with θ theta_is_chInt,
+          rcases theta_is_chInt with ⟨vocSub,noSatX1,noSatX2⟩,
+          use θ,
+          unfold partInterpolant at *,
+          simp,
+          split,
+          { rw vocPreserved X2 (~~ϕ) ϕ notnotphi_in_union (by {unfold voc, simp, }), -- !
+            change voc θ ⊆ voc X1 ∩ voc newX2, -- !
+            have : voc newX1 ⊆ voc X1 , { apply vocMonotone, simp, }, -- !
+            intros a aInVocTheta,
+            simp at *,
+            rw finset.subset_inter_iff at vocSub,
+            tauto,
+          },
+          split,
+          all_goals { by_contradiction hyp, unfold satisfiable at hyp, rcases hyp with ⟨W,M,w,sat⟩, },
+          { have : satisfiable (newX1 ∪ {~θ}), {
+              unfold satisfiable,
+              use [W,M,w],
+              intros ψ psi_in_newX_u_notTheta,
+              simp at psi_in_newX_u_notTheta,
+              cases psi_in_newX_u_notTheta,
+              { apply sat, rw psi_in_newX_u_notTheta, simp at *, },
+              cases psi_in_newX_u_notTheta,
+              { apply sat, simp at *, tauto, },
+            },
+            tauto,
+          },
+          { have : satisfiable (newX2 ∪ {θ}), {
+              unfold satisfiable at *,
+              use [W,M,w],
+              intros ψ psi_in_newX2cupTheta,
+              simp at psi_in_newX2cupTheta,
+              cases psi_in_newX2cupTheta, -- ! changed from here onwards
+              { apply sat, simp at *, tauto, },
+              cases psi_in_newX2cupTheta,
+              { apply sat, simp at *, tauto, },
+              { rw psi_in_newX2cupTheta, apply of_not_not,
+                change evaluate (M, w) (~~ϕ),
+                apply sat (~~ϕ), simp, right, assumption,
+              },
+            },
+            tauto,
+          },
         }
       },
       case con : {
