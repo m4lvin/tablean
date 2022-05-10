@@ -210,6 +210,45 @@ begin
   },
 end
 
+lemma conInterpolantX2 {X1 X2 ϕ ψ θ} : ϕ⋏ψ ∈ X2 → partInterpolant (X1 \ {ϕ⋏ψ}) (X2 \ {ϕ⋏ψ} ∪ {ϕ,ψ}) θ → partInterpolant X1 X2 θ :=
+begin
+  intros con_in_X2 theta_is_chInt,
+  rcases theta_is_chInt with ⟨vocSub, noSatX1, noSatX2⟩,
+  unfold partInterpolant,
+  split,
+  { rw vocPreservedTwo (ϕ⋏ψ) ϕ ψ con_in_X2 (by {unfold voc vocabOfFormula vocabOfSetFormula, simp, }),
+    have : voc (X1 \ {ϕ⋏ψ}) ⊆ voc X1 , { apply vocMonotone, simp, intros a aIn, finish, },
+    intros a aInVocTheta,
+    rw finset.subset_inter_iff at vocSub,
+    simp at *,
+    tauto,
+  },
+  split,
+  all_goals { by_contradiction hyp, unfold satisfiable at hyp, rcases hyp with ⟨W,M,w,sat⟩, },
+  { apply noSatX1,
+    unfold satisfiable,
+    use [W,M,w],
+    intros π pi_in,
+    simp at pi_in,
+    cases pi_in,
+    { rw pi_in, apply sat (~θ), simp, },
+    { apply sat, simp at *, tauto, },
+  },
+  { apply noSatX2,
+    unfold satisfiable,
+    use [W,M,w],
+    intros π pi_in,
+    simp at pi_in,
+    cases pi_in,
+    { rw pi_in, apply sat θ, simp, },
+    cases pi_in,
+    { rw pi_in, specialize sat (ϕ⋏ψ) (by {simp, right, exact con_in_X2,}), unfold evaluate at sat, tauto, },
+    cases pi_in,
+    { rw pi_in, specialize sat (ϕ⋏ψ) (by {simp, right, exact con_in_X2,}), unfold evaluate at sat, tauto, },
+    { exact sat π (by {simp,tauto,}), },
+  },
+end
+
 lemma localTabToInt : Π n X,
   n = lengthOfSet X →
     ∀ {X1 X2}, X = X1 ∪ X2 →
@@ -315,9 +354,37 @@ begin
           exact conInterpolantX1 con_in_union theta_is_chInt,
         },
         { -- case ϕ⋏ψ ∈ X2
-          sorry,
+          subst defX,
+          let newX1 := X1 \ {ϕ⋏ψ},
+          let newX2 := X2 \ {ϕ⋏ψ} ∪ {ϕ,ψ},
+          have yclaim : newX1 ∪ newX2 ∈ { (X1 ∪ X2) \ {ϕ⋏ψ} ∪ {ϕ, ψ} }, {
+            rw finset.mem_singleton,
+            change (X1 \ {ϕ⋏ψ}) ∪ (X2 \ {ϕ⋏ψ} ∪ {ϕ, ψ}) = (X1 ∪ X2) \ {ϕ⋏ψ} ∪ {ϕ,ψ},
+            ext1 a, split ; { intro hyp, simp at hyp, simp, tauto, },
+          },
+          set m := lengthOfSet (newX1 ∪ newX2),
+          have m_lt_n : m < n, {
+            rw lenX_is_n,
+            exact localRulesDecreaseLength (localRule.con (by {finish} : ϕ⋏ψ ∈ X1 ∪ X2)) (newX1 ∪ newX2) yclaim,
+          },
+          have nextNextInter : (∀ (Y1 Y2 : finset formula), Y1 ∪ Y2 ∈ endNodesOf ⟨newX1 ∪ newX2, (next (newX1 ∪ newX2) yclaim)⟩ → Exists (partInterpolant Y1 Y2)), {
+            intros Y1 Y2 Y_in, apply nextInter, unfold endNodesOf,
+            simp only [endNodesOf, finset.mem_mk, multiset.mem_singleton, finset.mem_bUnion, finset.mem_attach, exists_true_left, subtype.exists],
+            use newX1 ∪ newX2,
+            rw finset.mem_singleton at yclaim,
+            split, rotate,
+            rw yclaim,
+            exact Y_in,
+          },
+          have childInt : Exists (partInterpolant newX1 newX2), {
+            apply IH m m_lt_n (newX1 ∪ newX2) (by refl) (by refl),
+            fconstructor,
+            apply next (newX1 ∪ newX2) yclaim, exact nextNextInter,
+          },
+          cases childInt with θ theta_is_chInt,
+          use θ,
+          exact conInterpolantX2 con_in_union theta_is_chInt,
         },
-
       },
       case nCo : X ψ nCo_in_X {
         sorry,
