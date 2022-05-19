@@ -34,6 +34,8 @@ Module dependency overview:
 
 - https://github.com/paulaneeley/modal
 
+- https://github.com/minchaowu/ModalTab — see https://doi.org/10.4230/LIPIcs.ITP.2019.31
+
 - https://github.com/bbentzen/mpl/ — see https://arxiv.org/abs/1910.01697
 
 - https://github.com/LudvikGalois/coq-CPL-NNF-tableau

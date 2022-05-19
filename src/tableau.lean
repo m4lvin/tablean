@@ -77,7 +77,6 @@ begin
   exact proj,
 end
 
-@[simp]
 lemma projection_length_leq : ∀ f, (projection {f}).sum lengthOfFormula ≤ lengthOfFormula f :=
 begin
   intro f,
@@ -122,14 +121,14 @@ end
 -- local rules: given this set, we get these sets as child nodes
 inductive localRule : finset formula → finset (finset formula) → Type
 -- closing rules:
-| bot { X     } ( h : ⊥          ∈ X ) : localRule X ∅
-| not { X ϕ   } ( h : ϕ ∈ X ∧ ~ϕ ∈ X ) : localRule X ∅
+| bot {X    } (h : ⊥          ∈ X) : localRule X ∅
+| not {X ϕ  } (h : ϕ ∈ X ∧ ~ϕ ∈ X) : localRule X ∅
 -- one-child rules:
-| neg { X ϕ   } ( h : ~~ϕ        ∈ X ) : localRule X { (X \ {~~ϕ}) ∪ { ϕ }    }
-| con { X ϕ ψ } ( h : ϕ ⋏ ψ      ∈ X ) : localRule X { (X \ {ϕ ⋏ ψ}) ∪ { ϕ, ψ } }
+| neg {X ϕ  } (h : ~~ϕ   ∈ X) : localRule X { (X \ {~~ϕ}) ∪ { ϕ }    }
+| con {X ϕ ψ} (h : ϕ ⋏ ψ ∈ X) : localRule X { (X \ {ϕ ⋏ ψ}) ∪ { ϕ, ψ } }
 -- splitting rule:
-| nCo { X ϕ ψ } ( h : ~(ϕ ⋏ ψ)   ∈ X ) : localRule X { X \ { ~ (ϕ ⋏ ψ) } ∪ {~ϕ}
-                                                     , X \ { ~ (ϕ ⋏ ψ) } ∪ {~ψ} }
+| nCo {X ϕ ψ} (h : ~(ϕ ⋏ ψ) ∈ X) : localRule X { X \ { ~ (ϕ ⋏ ψ) } ∪ {~ϕ}
+                                                 , X \ { ~ (ϕ ⋏ ψ) } ∪ {~ψ} }
 
 -- If X is not simple, then a local rule can be applied.
 -- (page 13)
@@ -280,25 +279,10 @@ begin
   finish,
 end
 
-inductive tableau : finset formula → Type
-| loc {X} (lt : localTableau X) : (∀ Y ∈ endNodesOf ⟨X, lt⟩, tableau Y) → tableau X
-| atm {X ϕ} : ~□ϕ ∈ X → simple X → tableau (projection X ∪ {~ϕ}) → tableau X
-| opn {X} : simple X → (¬∃ ϕ, ~□ϕ ∈ X) → tableau X
-
--- approaches how to represent closed tableau:
--- - inductive Prop and subtype    <<< old way
--- - inductive wtih less constructors, write conversion functions? <<<<< now using this.
---   inductive closedTableau : finset formula → Type -- might not be possible to do ∀ α :-(
 -- Definition 16, page 29
 inductive closedTableau : Π ( X : finset formula ), Type
 | loc {X} (lt : localTableau X) : (∀ Y ∈ endNodesOf ⟨X, lt⟩, closedTableau Y) → closedTableau X
 | atm {X ϕ} : ~□ϕ ∈ X → simple X → (closedTableau (projection X ∪ {~ϕ})) → closedTableau X
-
-
--- is this useful/needed?
-@[simp]
-def complexityOfTableau : (Σ (X : finset formula) , tableau X) → ℕ
-| (⟨X,_⟩) := complexityOfSet X
 
 inductive provable : formula → Prop
 | byTableau {φ : formula} : closedTableau { ~ φ } → provable φ
@@ -414,53 +398,4 @@ begin
       { exact is_true ⟨_, rfl⟩ <|> { apply is_false, rintro ⟨_, ⟨⟩⟩ } },
   exact decidable_of_iff (∃ f ∈ X, ∃ ϕ, f = ~□ϕ)
     ⟨λ ⟨_, h, ϕ, rfl⟩, ⟨ϕ, h⟩, λ ⟨ϕ, h⟩, ⟨_, h, ϕ, rfl⟩⟩,
-end
-
--- FIXME: should be data instead of Prop
-def existsTableauFor : ∀ N X, N = lengthOf X → ∃ _ : tableau X, true :=
-begin
-  unfold lengthOf,
-  intros N,
-  apply nat.strong_induction_on N,
-  intros n IH,
-  intros X nDef,
-  refine if X_is_simple : simple X then (if has_diamond : (∃ ϕ, ~□ϕ ∈ X) then _ else _) else _,
-  { -- simples and has diamonds, use atm:
-    cases has_diamond with ϕ notBoxPhi_in_X,
-    have t := tableau.atm notBoxPhi_in_X X_is_simple _,
-    use t,
-    have rDec := atmRuleDecreasesLength notBoxPhi_in_X,
-    subst nDef,
-    specialize IH (lengthOfSet (projection X ∪ {~ϕ})) rDec _ (refl _),
-    choose t _true using IH,
-    exact t,
-  },
-  { -- simple but no diamonds, use opn:
-    constructor,
-    apply tableau.opn X_is_simple has_diamond,
-    trivial,
-  },
-  { -- not simple, use loc:
-    have haveLocTab := existsLocalTableauFor (lengthOf X) X,
-    simp at haveLocTab,
-    cases haveLocTab with ltX _,
-    constructor,
-    apply tableau.loc,
-    rotate,
-    { exact ltX, },
-    { trivial, },
-    { intros Y YisEndNode,
-      -- endNodes, use IH here!
-      subst nDef,
-      cases ltX,
-      -- localRule case:
-      specialize IH (lengthOf Y) (endNodesOfLocalRuleLT YisEndNode) Y,
-      unfold lengthOf at IH,
-      simp at IH,
-      choose t _true using IH,
-      use t,
-      -- cannot be in sim case because X is simple:
-      tauto,
-    },
-  },
 end
