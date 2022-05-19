@@ -3,7 +3,7 @@
 import syntax
 import tableau
 import soundness
-import modelgraphs
+-- import modelgraphs
 
 open has_sat
 

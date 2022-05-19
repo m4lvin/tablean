@@ -1,16 +1,13 @@
 import syntax
-import semantics
 import completeness
 import partitions
 
-open hasVocabulary vDash
+open hasVocabulary
 
 def interpolant (φ : formula) (ψ : formula) (θ : formula) :=
   tautology (φ ↣ θ)  ∧  tautology (θ ↣ ψ)  ∧  voc θ ⊆ (voc φ ∩ voc ψ)
 
-open has_sat
-
-lemma interpolation {ϕ ψ} : tautology (ϕ ↣ ψ) → ∃ (θ : formula), interpolant ϕ ψ θ :=
+lemma interpolation {ϕ ψ} : tautology (ϕ ↣ ψ) → ∃ θ, interpolant ϕ ψ θ :=
 begin
   intros hyp,
   let X1 : finset formula := {ϕ},

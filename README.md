@@ -4,8 +4,8 @@
 
 We formalise a tableau system for modal logic, with the goal to prove soundness, completeness and [Craig Interpolation](https://en.wikipedia.org/wiki/Craig_interpolation).
 
-For now we only consider the basic modal logic K, but the (very) long term goal is Propositional Dynamic Logic (PDL).
-We try to follow the definitions and ideas from Borzechowski (1988/2020) <https://malv.in/2020/borzechowski-pdl/>.
+For now we only consider the basic modal logic K, but the (very) long term goal is [Propositional Dynamic Logic](https://plato.stanford.edu/entries/logic-dynamic/) (PDL).
+We try to follow the definitions and ideas from [Borzechowski (1988/2020)](https://malv.in/2020/borzechowski-pdl/).
 
 
 ## Quick How To
