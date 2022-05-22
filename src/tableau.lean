@@ -280,9 +280,9 @@ begin
 end
 
 -- Definition 16, page 29
-inductive closedTableau : Π ( X : finset formula ), Type
-| loc {X} (lt : localTableau X) : (∀ Y ∈ endNodesOf ⟨X, lt⟩, closedTableau Y) → closedTableau X
-| atm {X ϕ} : ~□ϕ ∈ X → simple X → (closedTableau (projection X ∪ {~ϕ})) → closedTableau X
+inductive closedTableau : finset formula → Type
+| loc {X} (lt : localTableau X) : (Π Y ∈ endNodesOf ⟨X, lt⟩, closedTableau Y) → closedTableau X
+| atm {X ϕ} : ~□ϕ ∈ X → simple X → closedTableau (projection X ∪ {~ϕ}) → closedTableau X
 
 inductive provable : formula → Prop
 | byTableau {φ : formula} : closedTableau { ~ φ } → provable φ

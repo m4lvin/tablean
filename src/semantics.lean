@@ -12,11 +12,11 @@ structure kripkeModel (W : Type) : Type :=
 
 -- Definition 3, page 6
 def evaluate {W : Type} : (kripkeModel W × W) → formula → Prop
-| (M,w) ⊥     := false
-| (M,w) (· c) := M.val w c
-| Mw (~ φ)    := not (evaluate Mw φ)
-| Mw (φ ⋏ ψ)  := evaluate Mw φ ∧ evaluate Mw ψ
-| (M,w) (□ φ) := ∀ v : W, (M.rel w v → evaluate (M,v) φ)
+| (M,w) ⊥       := false
+| (M,w) (· p)   := M.val w p
+| (M,w) (~ φ)   := ¬ evaluate (M,w) φ
+| (M,w) (φ ⋏ ψ) := evaluate (M,w) φ ∧ evaluate (M,w) ψ
+| (M,w) (□ φ)   := ∀ v : W, (M.rel w v → evaluate (M,v) φ)
 
 def tautology     (φ : formula) := ∀ W (M : kripkeModel W) w, evaluate (M,w) φ
 def contradiction (φ : formula) := ∀ W (M : kripkeModel W) w, ¬ evaluate (M,w) φ
