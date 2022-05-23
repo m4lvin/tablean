@@ -124,17 +124,16 @@ inductive localRule : finset formula → finset (finset formula) → Type
 | bot {X    } (h : ⊥          ∈ X) : localRule X ∅
 | not {X ϕ  } (h : ϕ ∈ X ∧ ~ϕ ∈ X) : localRule X ∅
 -- one-child rules:
-| neg {X ϕ  } (h : ~~ϕ   ∈ X) : localRule X { (X \ {~~ϕ}) ∪ { ϕ }    }
-| con {X ϕ ψ} (h : ϕ ⋏ ψ ∈ X) : localRule X { (X \ {ϕ ⋏ ψ}) ∪ { ϕ, ψ } }
+| neg {X ϕ  } (h : ~~ϕ        ∈ X) : localRule X { X \ {~~ϕ}    ∪ {ϕ}   }
+| con {X ϕ ψ} (h : ϕ ⋏ ψ      ∈ X) : localRule X { X \ {ϕ⋏ψ}    ∪ {ϕ,ψ} }
 -- splitting rule:
-| nCo {X ϕ ψ} (h : ~(ϕ ⋏ ψ) ∈ X) : localRule X { X \ { ~ (ϕ ⋏ ψ) } ∪ {~ϕ}
-                                                 , X \ { ~ (ϕ ⋏ ψ) } ∪ {~ψ} }
+| nCo {X ϕ ψ} (h : ~(ϕ ⋏ ψ)   ∈ X) : localRule X { X \ {~(ϕ⋏ψ)} ∪ {~ϕ}
+                                                 , X \ {~(ϕ⋏ψ)} ∪ {~ψ}  }
 
 -- If X is not simple, then a local rule can be applied.
 -- (page 13)
 lemma notSimpleThenLocalRule { X } :
-  -- TODO write this as: nonempty (Σ B, localRule X B)
-  ¬ simple X → (∃ B (_ : localRule X B), true) :=
+  ¬ simple X → ∃ B, nonempty (localRule X B) :=
 begin
   intro notSimple,
   unfold simple at notSimple,
@@ -294,63 +293,54 @@ def inconsistent : finset formula → Prop
 def consistent : finset formula → Prop
 | X := ¬ inconsistent X
 
-
--- FIXME: should be data instead of Prop
-def existsLocalTableauFor : ∀ N α, N = lengthOf α → ∃ _ : localTableau α, true :=
+def existsLocalTableauFor : ∀ N α, N = lengthOf α → nonempty (localTableau α) :=
 begin
   intro N,
-  apply nat.strong_induction_on N, -- TODO: only works in Prop?
+  apply nat.strong_induction_on N,
   intros n IH α nDef,
-  have canApplyRule := em (¬ ∃ B (_ : localRule α B), true),
+  have canApplyRule := em (¬ ∃ B, nonempty (localRule α B)),
   cases canApplyRule,
   { split,
     apply localTableau.sim,
     by_contradiction hyp,
-    have fop := notSimpleThenLocalRule hyp,
-    tauto,
+    have := notSimpleThenLocalRule hyp,
     tauto,
   },
   { simp at canApplyRule,
     cases canApplyRule with B r_exists,
-    cases r_exists with r _hyp,
+    cases r_exists with r,
     cases r,
     case bot : _ h {
-      have t := (localTableau.byLocalRule (localRule.bot h)) _, use t,
-      intro beta, intro beta_in_empty, tauto,
+      have t := localTableau.byLocalRule (localRule.bot h) _, use t,
+      intro Y, intro Y_in_empty, tauto,
     },
     case not : _ _ h {
-      have t := (localTableau.byLocalRule (localRule.not h)) _, use t,
-      intro beta, intro beta_in_empty, tauto,
+      have t := localTableau.byLocalRule (localRule.not h) _, use t,
+      intro Y, intro Y_in_empty, tauto,
     },
     case neg : _ f h {
-      have t := (localTableau.byLocalRule (localRule.neg h)) _, use t,
-      intros beta beta_def,
-      have rDec := localRulesDecreaseLength (localRule.neg h) beta beta_def,
+      have t:= localTableau.byLocalRule (localRule.neg h) _, use t,
+      intros Y Y_def,
+      have rDec := localRulesDecreaseLength (localRule.neg h) Y Y_def,
       subst nDef,
-      specialize IH (lengthOf beta) rDec beta,
-      simp at IH,
-      choose t _true using IH,
-      use t,
+      specialize IH (lengthOf Y) rDec Y (refl _),
+      apply classical.choice IH,
     },
     case con : _ f g h {
       have t := localTableau.byLocalRule (localRule.con h) _, use t,
-      intros beta beta_def,
-      have rDec := localRulesDecreaseLength (localRule.con h) beta beta_def,
+      intros Y Y_def,
+      have rDec := localRulesDecreaseLength (localRule.con h) Y Y_def,
       subst nDef,
-      specialize IH (lengthOf beta) rDec beta,
-      simp at IH,
-      choose t _true using IH,
-      use t,
+      specialize IH (lengthOf Y) rDec Y (refl _),
+      apply classical.choice IH,
     },
     case nCo : _ f g h {
       have t := localTableau.byLocalRule (localRule.nCo h) _, use t,
-      intros beta beta_def,
-      have rDec := localRulesDecreaseLength (localRule.nCo h) beta beta_def,
+      intros Y Y_def,
+      have rDec := localRulesDecreaseLength (localRule.nCo h) Y Y_def,
       subst nDef,
-      specialize IH (lengthOf beta) rDec beta,
-      simp at IH,
-      choose t _true using IH,
-      use t,
+      specialize IH (lengthOf Y) rDec Y (refl _),
+      apply classical.choice IH,
     },
   }
 end

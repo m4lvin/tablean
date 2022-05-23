@@ -268,14 +268,12 @@ begin
   },
   -- CASE 2: X is not simple
   rename simpX notSimpX,
-  have foo := notSimpleThenLocalRule notSimpX,
-  rcases foo with ⟨B,lr,_⟩,
+  rcases notSimpleThenLocalRule notSimpX with ⟨B,lrExists⟩,
+  have lr := classical.choice lrExists,
   have rest : Π (Y : finset formula), Y ∈ B → localTableau Y, {
     intros Y Y_in_B,
     set N := hasLength.lengthOf Y,
-    have h := existsLocalTableauFor N Y,
-    simp at h,
-    exact classical.some h,
+    exact classical.choice (existsLocalTableauFor N Y (by refl))
   },
   rcases @consToEndNodes X (localTableau.byLocalRule lr rest) consX with ⟨E, E_endOf_X, consE⟩,
   have satE : satisfiable E, {

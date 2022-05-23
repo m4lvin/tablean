@@ -53,7 +53,7 @@ begin
     split,
     { unfold voc, intros a aIn, simp, split,
       exact vocElem_subs_vocSet pSide aIn,
-      have h : ~ϕ ∈ X2 , { finish, },
+      have h : ~ϕ ∈ X2 , { rw finset.mem_union at nIn, tauto, },
       have := vocElem_subs_vocSet h,
       simp at *,
       tauto,
@@ -67,7 +67,7 @@ begin
     split,
     { unfold voc, intros a aIn, simp, split,
       exact vocElem_subs_vocSet nSide aIn,
-      have h : ϕ ∈ X2 , { finish, },
+      have h : ϕ ∈ X2 , { rw finset.mem_union at pIn, tauto, },
       have := vocElem_subs_vocSet h,
       simp at *,
       tauto,
@@ -95,7 +95,7 @@ begin
   split,
   { rw vocPreserved X1 (~~ϕ) ϕ notnotphi_in_X1 (by {unfold voc, simp, }),
     change voc θ ⊆ voc (X1 \ {~~ϕ} ∪ {ϕ}) ∩ voc X2,
-    have : voc (X2 \ {~~ϕ}) ⊆ voc X2 , { apply vocMonotone, simp, intros a aIn, finish, },
+    have : voc (X2 \ {~~ϕ}) ⊆ voc X2 := vocErase,
     intros a aInVocTheta,
     simp at *,
     rw finset.subset_inter_iff at vocSub,
@@ -137,7 +137,7 @@ begin
   split,
   { rw vocPreserved X2 (~~ϕ) ϕ notnotphi_in_X2 (by {unfold voc, simp, }),
     change voc θ ⊆ voc X1 ∩ voc (X2 \ {~~ϕ} ∪ {ϕ}),
-    have : voc (X1 \ {~~ϕ}) ⊆ voc X1 , { apply vocMonotone, simp, intros a aIn, finish, },
+    have : voc (X1 \ {~~ϕ}) ⊆ voc X1 := vocErase,
     intros a aInVocTheta,
     simp at *,
     rw finset.subset_inter_iff at vocSub,
@@ -178,7 +178,7 @@ begin
   unfold partInterpolant,
   split,
   { rw vocPreservedTwo (ϕ⋏ψ) ϕ ψ con_in_X1 (by {unfold voc vocabOfFormula vocabOfSetFormula, simp, }),
-    have : voc (X2 \ {ϕ⋏ψ}) ⊆ voc X2 , { apply vocMonotone, simp, intros a aIn, finish, },
+    have : voc (X2 \ {ϕ⋏ψ}) ⊆ voc X2 := vocErase,
     intros a aInVocTheta,
     rw finset.subset_inter_iff at vocSub,
     simp at *,
@@ -217,7 +217,7 @@ begin
   unfold partInterpolant,
   split,
   { rw vocPreservedTwo (ϕ⋏ψ) ϕ ψ con_in_X2 (by {unfold voc vocabOfFormula vocabOfSetFormula, simp, }),
-    have : voc (X1 \ {ϕ⋏ψ}) ⊆ voc X1 , { apply vocMonotone, simp, intros a aIn, finish, },
+    have : voc (X1 \ {ϕ⋏ψ}) ⊆ voc X1 := vocErase,
     intros a aInVocTheta,
     rw finset.subset_inter_iff at vocSub,
     simp at *,
@@ -264,7 +264,7 @@ begin
     rw finset.subset_inter_iff,
     split , all_goals { rw finset.union_subset_iff ; split ; intros a aIn, },
     { have foo := vocPreservedSub (~(ϕ⋏ψ)) (~ϕ) nCo_in_X1,
-      have bar : voc (~ϕ) ⊆ voc (~(ϕ⋏ψ)), { unfold voc vocabOfFormula, finish, },
+      have bar : voc (~ϕ) ⊆ voc (~(ϕ⋏ψ)), { unfold voc vocabOfFormula, apply finset.subset_union_left, },
       have claim := foo bar,
       rw finset.subset_iff at claim,
       specialize @claim a,
@@ -274,7 +274,7 @@ begin
       finish,
     },
     { have foo := vocPreservedSub (~(ϕ⋏ψ)) (~ψ) nCo_in_X1,
-      have bar : voc (~ψ) ⊆ voc (~(ϕ⋏ψ)), { unfold voc vocabOfFormula, finish, },
+      have bar : voc (~ψ) ⊆ voc (~(ϕ⋏ψ)), { unfold voc vocabOfFormula, apply finset.subset_union_right, },
       have claim := foo bar,
       rw finset.subset_iff at claim,
       specialize @claim a,
@@ -286,14 +286,14 @@ begin
     },
     { rw finset.subset_iff at a_vocSub,
       specialize a_vocSub aIn,
-      have : voc (X2 \ {~(ϕ⋏ψ)}) ⊆ voc X2 , { apply vocMonotone, simp, intros a aIn, finish, },
+      have : voc (X2 \ {~(ϕ⋏ψ)}) ⊆ voc X2 := vocErase,
       unfold voc at *,
       simp at *,
       tauto,
     },
     { rw finset.subset_iff at b_vocSub,
       specialize b_vocSub aIn,
-      have : voc (X2 \ {~(ϕ⋏ψ)}) ⊆ voc X2, { apply vocMonotone, simp, intros a aIn, finish, },
+      have : voc (X2 \ {~(ϕ⋏ψ)}) ⊆ voc X2 := vocErase,
       unfold voc at *,
       simp at *,
       tauto,
@@ -359,20 +359,20 @@ begin
     split , all_goals { rw finset.union_subset_iff ; split ; intros a aIn, },
     { rw finset.subset_iff at a_vocSub,
       specialize a_vocSub aIn,
-      have : voc (X1 \ {~(ϕ⋏ψ)}) ⊆ voc X1 , { apply vocMonotone, simp, intros a aIn, finish, },
+      have : voc (X1 \ {~(ϕ⋏ψ)}) ⊆ voc X1 := vocErase,
       unfold voc at *,
       simp at *,
       tauto,
     },
     { rw finset.subset_iff at b_vocSub,
       specialize b_vocSub aIn,
-      have : voc (X1 \ {~(ϕ⋏ψ)}) ⊆ voc X1, { apply vocMonotone, simp, intros a aIn, finish, },
+      have : voc (X1 \ {~(ϕ⋏ψ)}) ⊆ voc X1 := vocErase,
       unfold voc at *,
       simp at *,
       tauto,
     },
     { have foo := vocPreservedSub (~(ϕ⋏ψ)) (~ϕ) nCo_in_X2,
-      have bar : voc (~ϕ) ⊆ voc (~(ϕ⋏ψ)), { unfold voc vocabOfFormula, finish, },
+      have bar : voc (~ϕ) ⊆ voc (~(ϕ⋏ψ)), { unfold voc vocabOfFormula, apply finset.subset_union_left, },
       have claim := foo bar,
       rw finset.subset_iff at claim,
       specialize @claim a,
@@ -382,7 +382,7 @@ begin
       finish,
     },
     { have foo := vocPreservedSub (~(ϕ⋏ψ)) (~ψ) nCo_in_X2,
-      have bar : voc (~ψ) ⊆ voc (~(ϕ⋏ψ)), { unfold voc vocabOfFormula, finish, },
+      have bar : voc (~ψ) ⊆ voc (~(ϕ⋏ψ)), { unfold voc vocabOfFormula, apply finset.subset_union_right, },
       have claim := foo bar,
       rw finset.subset_iff at claim,
       specialize @claim a,
@@ -470,13 +470,13 @@ begin
           set m := lengthOfSet (newX1 ∪ newX2),
           have m_lt_n : m < n, {
             rw lenX_is_n,
-            exact localRulesDecreaseLength (localRule.neg (by {finish} : ~~ϕ ∈ X1 ∪ X2)) (newX1 ∪ newX2) yclaim,
+            exact localRulesDecreaseLength (localRule.neg notnotphi_in) (newX1 ∪ newX2) yclaim,
           },
           have nextNextInter : (∀ (Y1 Y2 : finset formula), Y1 ∪ Y2 ∈ endNodesOf ⟨newX1 ∪ newX2, (next (newX1 ∪ newX2) yclaim)⟩ → Exists (partInterpolant Y1 Y2)), {
-            intros Y1 Y2, apply nextInter, finish,
+            intros Y1 Y2, apply nextInter Y1 Y2 (newX1 ∪ newX2), finish,
           },
           have childInt : Exists (partInterpolant newX1 newX2) :=
-            IH m m_lt_n (newX1 ∪ newX2) (by refl) (by refl) (next (newX1 ∪ newX2) yclaim) nextNextInter,
+            IH m m_lt_n (newX1 ∪ newX2) (refl _) (refl _) (next (newX1 ∪ newX2) yclaim) nextNextInter,
           cases childInt with θ theta_is_chInt,
           use θ,
           exact notnotInterpolantX1 notnotphi_in_union theta_is_chInt,
@@ -494,13 +494,13 @@ begin
           set m := lengthOfSet (newX1 ∪ newX2),
           have m_lt_n : m < n, {
             rw lenX_is_n,
-            exact localRulesDecreaseLength (localRule.neg (by {finish} : ~~ϕ ∈ X1 ∪ X2)) (newX1 ∪ newX2) yclaim,
+            exact localRulesDecreaseLength (localRule.neg notnotphi_in) (newX1 ∪ newX2) yclaim,
           },
           have nextNextInter : (∀ (Y1 Y2 : finset formula), Y1 ∪ Y2 ∈ endNodesOf ⟨newX1 ∪ newX2, (next (newX1 ∪ newX2) yclaim)⟩ → Exists (partInterpolant Y1 Y2)), {
-            intros Y1 Y2, apply nextInter, finish,
+            intros Y1 Y2, apply nextInter Y1 Y2 (newX1 ∪ newX2), finish,
           },
           have childInt : Exists (partInterpolant newX1 newX2) :=
-            IH m m_lt_n (newX1 ∪ newX2) (by refl) (by refl) (next (newX1 ∪ newX2) yclaim) nextNextInter,
+            IH m m_lt_n (newX1 ∪ newX2) (refl _) (refl _) (next (newX1 ∪ newX2) yclaim) nextNextInter,
           cases childInt with θ theta_is_chInt,
           use θ,
           exact notnotInterpolantX2 notnotphi_in_union theta_is_chInt,
@@ -521,7 +521,7 @@ begin
           set m := lengthOfSet (newX1 ∪ newX2),
           have m_lt_n : m < n, {
             rw lenX_is_n,
-            exact localRulesDecreaseLength (localRule.con (by {finish} : ϕ⋏ψ ∈ X1 ∪ X2)) (newX1 ∪ newX2) yclaim,
+            exact localRulesDecreaseLength (localRule.con con_in_X) (newX1 ∪ newX2) yclaim,
           },
           have nextNextInter : (∀ (Y1 Y2 : finset formula), Y1 ∪ Y2 ∈ endNodesOf ⟨newX1 ∪ newX2, (next (newX1 ∪ newX2) yclaim)⟩ → Exists (partInterpolant Y1 Y2)), {
             intros Y1 Y2 Y_in, apply nextInter, unfold endNodesOf,
@@ -533,7 +533,7 @@ begin
             exact Y_in,
           },
           have childInt : Exists (partInterpolant newX1 newX2), {
-            apply IH m m_lt_n (newX1 ∪ newX2) (by refl) (by refl),
+            apply IH m m_lt_n (newX1 ∪ newX2) (refl _) (refl _),
             fconstructor,
             apply next (newX1 ∪ newX2) yclaim, exact nextNextInter,
           },
@@ -553,7 +553,7 @@ begin
           set m := lengthOfSet (newX1 ∪ newX2),
           have m_lt_n : m < n, {
             rw lenX_is_n,
-            exact localRulesDecreaseLength (localRule.con (by {finish} : ϕ⋏ψ ∈ X1 ∪ X2)) (newX1 ∪ newX2) yclaim,
+            exact localRulesDecreaseLength (localRule.con con_in_X) (newX1 ∪ newX2) yclaim,
           },
           have nextNextInter : (∀ (Y1 Y2 : finset formula), Y1 ∪ Y2 ∈ endNodesOf ⟨newX1 ∪ newX2, (next (newX1 ∪ newX2) yclaim)⟩ → Exists (partInterpolant Y1 Y2)), {
             intros Y1 Y2 Y_in, apply nextInter, unfold endNodesOf,
@@ -565,7 +565,7 @@ begin
             exact Y_in,
           },
           have childInt : Exists (partInterpolant newX1 newX2), {
-            apply IH m m_lt_n (newX1 ∪ newX2) (by refl) (by refl),
+            apply IH m m_lt_n (newX1 ∪ newX2) (refl _) (refl _),
             fconstructor,
             apply next (newX1 ∪ newX2) yclaim, exact nextNextInter,
           },
@@ -588,10 +588,10 @@ begin
           set a_m := lengthOfSet (a_newX1 ∪ a_newX2),
           have a_m_lt_n : a_m < n, {
             rw lenX_is_n,
-            exact localRulesDecreaseLength (localRule.nCo (by {finish} : ~(ϕ⋏ψ) ∈ X1 ∪ X2)) (a_newX1 ∪ a_newX2) a_yclaim,
+            exact localRulesDecreaseLength (localRule.nCo nCo_in_X) (a_newX1 ∪ a_newX2) a_yclaim,
           },
           have a_childInt : Exists (partInterpolant a_newX1 a_newX2), {
-            apply IH a_m a_m_lt_n (a_newX1 ∪ a_newX2) (by refl) (by refl),
+            apply IH a_m a_m_lt_n (a_newX1 ∪ a_newX2) (refl _) (refl _),
             fconstructor,
             apply next (a_newX1 ∪ a_newX2) a_yclaim, -- remains to show nextNextInter
             intros Y1 Y2 Y_in, apply nextInter, unfold endNodesOf,
@@ -608,10 +608,10 @@ begin
           set b_m := lengthOfSet (b_newX1 ∪ b_newX2),
           have b_m_lt_n : b_m < n, {
             rw lenX_is_n,
-            exact localRulesDecreaseLength (localRule.nCo (by {finish} : ~(ϕ⋏ψ) ∈ X1 ∪ X2)) (b_newX1 ∪ b_newX2) b_yclaim,
+            exact localRulesDecreaseLength (localRule.nCo nCo_in_X) (b_newX1 ∪ b_newX2) b_yclaim,
           },
           have b_childInt : Exists (partInterpolant b_newX1 b_newX2), {
-            apply IH b_m b_m_lt_n (b_newX1 ∪ b_newX2) (by refl) (by refl),
+            apply IH b_m b_m_lt_n (b_newX1 ∪ b_newX2) (refl _) (refl _),
             fconstructor,
             apply next (b_newX1 ∪ b_newX2) b_yclaim, -- remains to show nextNextInter
             intros Y1 Y2 Y_in, apply nextInter, unfold endNodesOf,
@@ -635,10 +635,10 @@ begin
           set a_m := lengthOfSet (a_newX1 ∪ a_newX2),
           have a_m_lt_n : a_m < n, {
             rw lenX_is_n,
-            exact localRulesDecreaseLength (localRule.nCo (by {finish} : ~(ϕ⋏ψ) ∈ X1 ∪ X2)) (a_newX1 ∪ a_newX2) a_yclaim,
+            exact localRulesDecreaseLength (localRule.nCo nCo_in_X) (a_newX1 ∪ a_newX2) a_yclaim,
           },
           have a_childInt : Exists (partInterpolant a_newX1 a_newX2), {
-            apply IH a_m a_m_lt_n (a_newX1 ∪ a_newX2) (by refl) (by refl),
+            apply IH a_m a_m_lt_n (a_newX1 ∪ a_newX2) (refl _) (refl _),
             fconstructor,
             apply next (a_newX1 ∪ a_newX2) a_yclaim, -- remains to show nextNextInter
             intros Y1 Y2 Y_in, apply nextInter, unfold endNodesOf,
@@ -655,10 +655,10 @@ begin
           set b_m := lengthOfSet (b_newX1 ∪ b_newX2),
           have b_m_lt_n : b_m < n, {
             rw lenX_is_n,
-            exact localRulesDecreaseLength (localRule.nCo (by {finish} : ~(ϕ⋏ψ) ∈ X1 ∪ X2)) (b_newX1 ∪ b_newX2) b_yclaim,
+            exact localRulesDecreaseLength (localRule.nCo nCo_in_X) (b_newX1 ∪ b_newX2) b_yclaim,
           },
           have b_childInt : Exists (partInterpolant b_newX1 b_newX2), {
-            apply IH b_m b_m_lt_n (b_newX1 ∪ b_newX2) (by refl) (by refl),
+            apply IH b_m b_m_lt_n (b_newX1 ∪ b_newX2) (refl _) (refl _),
             fconstructor,
             apply next (b_newX1 ∪ b_newX2) b_yclaim, -- remains to show nextNextInter
             intros Y1 Y2 Y_in, apply nextInter, unfold endNodesOf,
@@ -711,9 +711,9 @@ begin
       use ltX,
       intros Y1 Y2 y_is_endOfX,
       specialize next (Y1 ∪ Y2) y_is_endOfX,
-      exact IH (Y1 ∪ Y2) y_is_endOfX Y1 Y2 (by refl),
+      exact IH (Y1 ∪ Y2) y_is_endOfX Y1 Y2 (refl _),
     },
-    exact localTabToInt _ X (by refl) defX nextLtAndInter,
+    exact localTabToInt _ X (refl _) defX nextLtAndInter,
   },
   case atm: X ϕ notBoxPhi_in_X simpleX ctProjNotPhi IH {
     intros X1 X2 defX,
@@ -855,4 +855,4 @@ begin
 end
 
 lemma tabToInt {X1 X2} : closedTableau (X1 ∪ X2) → ∃ θ, partInterpolant X1 X2 θ
-| ctX := almostTabToInt ctX X1 X2 (by refl)
+| ctX := almostTabToInt ctX X1 X2 (refl _)

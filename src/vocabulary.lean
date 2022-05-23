@@ -48,6 +48,14 @@ begin
   tauto,
 end
 
+lemma vocErase {X : finset formula} {ϕ : formula} : voc (X \ {ϕ}) ⊆ voc X :=
+begin
+  apply vocMonotone,
+  rw sdiff_singleton_is_erase,
+  intros a aIn,
+  exact finset.mem_of_mem_erase aIn,
+end
+
 lemma vocUnion {X Y : finset formula} : voc (X ∪ Y) = voc X ∪ voc Y :=
 begin
   unfold voc vocabOfSetFormula,
