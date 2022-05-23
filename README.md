@@ -1,6 +1,7 @@
 # Tableau for Modal Logic in LEAN
 
 [![CI status](https://github.com/m4lvin/tablean/actions/workflows/build.yml/badge.svg)](https://github.com/m4lvin/tablean/actions/workflows/build.yml)
+[![Gitpod Ready-to-Code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/m4lvin/tablean)
 
 We formalise a tableau system for modal logic, with the goal to prove soundness, completeness and [Craig Interpolation](https://en.wikipedia.org/wiki/Craig_interpolation).
 
