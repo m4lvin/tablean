@@ -488,7 +488,11 @@ begin
     specialize IH Y Y_in_YS,
     set ltY := next Y Y_in_YS,
     have endNodesInclusion : ∀ W, W ∈ endNodesOf ⟨Y, ltY⟩ → W ∈ endNodesOf ⟨X, localTableau.byLocalRule lr next⟩ , {
-      rw setEndNodes, finish,
+      rw endNodesOf,
+      intros W W_endOF_Y,
+      simp only [endNodesOf, finset.mem_bUnion, finset.mem_attach, exists_true_left, subtype.exists],
+      use [Y, Y_in_YS],
+      assumption,
     },
     have endsOfYnotSat : (∀ (Y_1 : finset formula), Y_1 ∈ endNodesOf ⟨Y, ltY⟩ → ¬ satisfiable Y_1), {
       intros W W_is_endOf_Y,

@@ -271,11 +271,42 @@ lemma botNoEndNodes {X h n} : endNodesOf ⟨X, localTableau.byLocalRule (@localR
 @[simp]
 lemma notNoEndNodes {X h ϕ n} : endNodesOf ⟨X, localTableau.byLocalRule (@localRule.not X h ϕ) n⟩ = ∅ := by { unfold endNodesOf, simp, }
 
-lemma setEndNodes {X B lr next} : endNodesOf ⟨X, @byLocalRule _ B lr next⟩ = B.attach.bUnion (λ ⟨Y,h⟩, endNodesOf ⟨Y, next Y h⟩) :=
+lemma negEndNodes {X ϕ h n} : endNodesOf ⟨X, localTableau.byLocalRule (@localRule.neg X ϕ h) n⟩ =
+  endNodesOf ⟨X \ {~~ϕ} ∪ {ϕ}, n (X \ {~~ϕ} ∪ {ϕ}) (by simp)⟩ :=
 begin
-  simp,
   ext1,
-  finish,
+  simp only [endNodesOf, finset.mem_singleton, finset.mem_bUnion, finset.mem_attach, exists_true_left, subtype.exists],
+  split,
+  { intro lhs, rcases lhs with ⟨b,bDef,bIn⟩, subst bDef, exact bIn, },
+  { intro rhs, use (X \ {~~ϕ} ∪ {ϕ}), split, exact rhs, refl, },
+end
+
+lemma conEndNodes {X ϕ ψ h n} : endNodesOf ⟨X, localTableau.byLocalRule (@localRule.con X ϕ ψ h) n⟩ =
+  endNodesOf ⟨X \ {ϕ⋏ψ} ∪ {ϕ,ψ}, n (X \ {ϕ⋏ψ} ∪ {ϕ,ψ}) (by simp)⟩ :=
+begin
+  ext1,
+  simp only [endNodesOf, finset.mem_singleton, finset.mem_bUnion, finset.mem_attach, exists_true_left, subtype.exists],
+  split,
+{ intro lhs, rcases lhs with ⟨b,bDef,bIn⟩, subst bDef, exact bIn, },
+{ intro rhs, use (X \ {ϕ⋏ψ} ∪ {ϕ,ψ}), split, exact rhs, refl, },
+end
+
+lemma nCoEndNodes {X ϕ ψ h n} : endNodesOf ⟨X, localTableau.byLocalRule (@localRule.nCo X ϕ ψ h) n⟩ =
+  endNodesOf ⟨X \ {~(ϕ⋏ψ)} ∪ {~ϕ}, n (X \ {~(ϕ⋏ψ)} ∪ {~ϕ}) (by simp)⟩
+  ∪ endNodesOf ⟨X \ {~(ϕ⋏ψ)} ∪ {~ψ}, n (X \ {~(ϕ⋏ψ)} ∪ {~ψ}) (by simp)⟩ :=
+begin
+  ext1,
+  simp only [endNodesOf, finset.mem_singleton, finset.mem_bUnion, finset.mem_attach, exists_true_left, subtype.exists],
+  split,
+  { intro lhs, rcases lhs with ⟨b,bDef,bIn⟩,
+    simp only [finset.mem_insert, finset.mem_singleton] at bDef, cases bDef with bD1 bD2,
+    { subst bD1, simp, left, exact bIn, },
+    { subst bD2, simp, right, exact bIn, },
+  },
+  { intro rhs, rw finset.mem_union at rhs, cases rhs,
+    { use (X \ {~(ϕ⋏ψ)} ∪ {~ϕ}), split, exact rhs, simp, },
+    { use (X \ {~(ϕ⋏ψ)} ∪ {~ψ}), split, exact rhs, simp, },
+  },
 end
 
 -- Definition 16, page 29
@@ -371,7 +402,7 @@ lemma endNodesOfLocalRuleLT {X Z B next lr} :
   Z ∈ endNodesOf ⟨X, (@localTableau.byLocalRule _ B lr next)⟩ → lengthOf Z < lengthOf X :=
 begin
   intros ZisEndNode,
-  rw setEndNodes at ZisEndNode,
+  rw endNodesOf at ZisEndNode,
   simp only [finset.mem_bUnion, finset.mem_attach, exists_true_left, subtype.exists] at ZisEndNode,
   rcases ZisEndNode with ⟨a,a_in_WS,Z_endOf_a⟩,
   change Z ∈ endNodesOf ⟨a, next a a_in_WS⟩ at Z_endOf_a,
