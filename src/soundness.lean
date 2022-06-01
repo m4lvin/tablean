@@ -477,7 +477,7 @@ begin
   },
 end
 
-lemma localTableauAndEndNodesUnsatThenNOtSat {Z} (ltZ : localTableau Z) :
+lemma localTableauAndEndNodesUnsatThenNotSat {Z} (ltZ : localTableau Z) :
   (Π (Y), Y ∈ endNodesOf ⟨Z, ltZ⟩ → ¬ satisfiable Y) → ¬satisfiable Z :=
 begin
   intro endsOfXnotSat,
@@ -508,7 +508,7 @@ begin
   intros X t,
   induction t,
   case loc: Y ltY next IH {
-    apply localTableauAndEndNodesUnsatThenNOtSat ltY,
+    apply localTableauAndEndNodesUnsatThenNotSat ltY,
     intros Z ZisEndOfY,
     exact IH Z ZisEndOfY,
   },
