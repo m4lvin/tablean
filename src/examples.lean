@@ -1,3 +1,5 @@
+-- EXAMPLES
+
 import syntax
 import semantics
 

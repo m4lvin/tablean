@@ -1,3 +1,4 @@
+-- PARTITIONS
 
 import syntax
 import tableau
@@ -8,7 +9,6 @@ import vocabulary
 open hasVocabulary has_sat
 
 def partition := finset formula × finset formula
-
 
 -- Definition 24
 def partInterpolant (X1 X2 : finset formula) (θ : formula) :=

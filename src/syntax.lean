@@ -1,8 +1,6 @@
 -- SYNTAX
 
-import order.bounded_order
 import data.set.finite
-import data.finset.fold
 import algebra.big_operators.basic
 
 -- Definition 1, page 4

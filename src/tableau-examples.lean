@@ -1,7 +1,8 @@
+-- TABLEAU-EXAMPLES
+
 import syntax
 import tableau
 
--- set_option pp.proofs true
 lemma noBot : provable (~ ⊥) :=
 begin
   apply provable.byTableau,
@@ -43,7 +44,7 @@ begin
   apply provable.byTableau,
   apply closedTableau.loc,
   swap 2,
-  {
+  { 
     apply localTableau.byLocalRule,
     -- neg:
     apply localRule.neg,
@@ -108,8 +109,7 @@ example : closedTableau { r ⋏ ~□p, r ↣ □(p ⋏ q) } :=
 begin
   apply closedTableau.loc,
   rotate,
-  { -- localTableau α
-    -- con
+  { -- con
     apply localTableau.byLocalRule,
     apply localRule.con,
     simp,

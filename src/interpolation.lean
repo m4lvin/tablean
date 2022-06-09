@@ -1,3 +1,5 @@
+-- INTERPOLATION
+
 import syntax
 import completeness
 import partitions

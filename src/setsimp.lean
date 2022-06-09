@@ -1,3 +1,5 @@
+-- SETSIMP
+
 import syntax
 
 @[simp]

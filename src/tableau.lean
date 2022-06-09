@@ -410,13 +410,3 @@ begin
        ≤ lengthOf a : endNodesOfLEQ Z_endOf_a
    ... < lengthOfSet X : localRulesDecreaseLength lr a a_in_WS },
 end
-
--- thanks to Mario Carneiro via Zulip!
-instance contains_diamond.decidable (X : finset formula) : decidable (∃ ϕ, ~□ϕ ∈ X) :=
-begin
-  haveI : ∀ X, decidable (∃ ϕ, X = (~□ ϕ)) := by
-    rintro (_ | _ | (_|_|_) | z);
-      { exact is_true ⟨_, rfl⟩ <|> { apply is_false, rintro ⟨_, ⟨⟩⟩ } },
-  exact decidable_of_iff (∃ f ∈ X, ∃ ϕ, f = ~□ϕ)
-    ⟨λ ⟨_, h, ϕ, rfl⟩, ⟨ϕ, h⟩, λ ⟨ϕ, h⟩, ⟨_, h, ϕ, rfl⟩⟩,
-end
