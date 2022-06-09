@@ -112,7 +112,7 @@ begin
   { -- con
     apply localTableau.byLocalRule,
     apply localRule.con,
-    simp,
+    simp only [impl, finset.mem_insert, finset.mem_singleton, or_false],
     split,
     refl,
     refl,
@@ -122,8 +122,7 @@ begin
     -- nCo
     apply localTableau.byLocalRule,
     apply @localRule.nCo _ r (~□(p ⋏ q)),
-    rw branch_def,
-    simp,
+    { rw branch_def, simp, },
     intros b b_in,
     simp only [finset.mem_insert, finset.mem_singleton] at b_in,
     refine if h1 : b = branch \ {~(r⋏~□(p⋏q))} ∪ {~r} then _ else _,
@@ -173,11 +172,10 @@ begin
     { -- notnotbranch
       dedup,
       have Yis : Y = {r, ~□p, □(p ⋏ q)}, {
-        simp at *,
+        simp at Yin,
         subst Yin,
-        simp at *,
         ext1,
-        split ; { intro hyp, finish, },
+        split ; { intro hyp, finish },
       },
       subst Yis,
       exact subTabForEx2,

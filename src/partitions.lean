@@ -515,12 +515,8 @@ begin
           },
           have nextNextInter : (∀ (Y1 Y2 : finset formula), Y1 ∪ Y2 ∈ endNodesOf ⟨newX1 ∪ newX2, (next (newX1 ∪ newX2) yclaim)⟩ → Exists (partInterpolant Y1 Y2)), {
             intros Y1 Y2 Y_in, apply nextInter, unfold endNodesOf,
-            simp only [endNodesOf, finset.mem_mk, multiset.mem_singleton, finset.mem_bUnion, finset.mem_attach, exists_true_left, subtype.exists],
-            use newX1 ∪ newX2,
-            rw finset.mem_singleton at yclaim,
-            split, rotate,
-            rw yclaim,
-            exact Y_in,
+            simp only [endNodesOf, finset.mem_bUnion, finset.mem_attach, exists_true_left, subtype.exists],
+            exact ⟨newX1 ∪ newX2, yclaim, Y_in⟩,
           },
           have childInt : Exists (partInterpolant newX1 newX2), {
             apply IH m m_lt_n (newX1 ∪ newX2) (refl _) (refl _),
@@ -547,12 +543,8 @@ begin
           },
           have nextNextInter : (∀ (Y1 Y2 : finset formula), Y1 ∪ Y2 ∈ endNodesOf ⟨newX1 ∪ newX2, (next (newX1 ∪ newX2) yclaim)⟩ → Exists (partInterpolant Y1 Y2)), {
             intros Y1 Y2 Y_in, apply nextInter, unfold endNodesOf,
-            simp only [endNodesOf, finset.mem_mk, multiset.mem_singleton, finset.mem_bUnion, finset.mem_attach, exists_true_left, subtype.exists],
-            use newX1 ∪ newX2,
-            rw finset.mem_singleton at yclaim,
-            split,
-            exact Y_in,
-            exact yclaim,
+            simp only [endNodesOf, finset.mem_bUnion, finset.mem_attach, exists_true_left, subtype.exists],
+            exact ⟨newX1 ∪ newX2, yclaim, Y_in⟩,
           },
           have childInt : Exists (partInterpolant newX1 newX2), {
             apply IH m m_lt_n (newX1 ∪ newX2) (refl _) (refl _),
@@ -585,9 +577,8 @@ begin
             fconstructor,
             apply next (a_newX1 ∪ a_newX2) a_yclaim, -- remains to show nextNextInter
             intros Y1 Y2 Y_in, apply nextInter, unfold endNodesOf,
-            simp only [endNodesOf, finset.mem_mk, multiset.mem_singleton, finset.mem_bUnion, finset.mem_attach, exists_true_left, subtype.exists],
-            use a_newX1 ∪ a_newX2,
-            split, exact Y_in, exact a_yclaim,
+            simp only [endNodesOf, finset.mem_bUnion, finset.mem_attach, exists_true_left, subtype.exists],
+            exact ⟨a_newX1 ∪ a_newX2, a_yclaim, Y_in⟩,
           },
           cases a_childInt with θa a_theta_is_chInt,
           -- now get an interpolant for the ~ψ branch:
@@ -605,9 +596,8 @@ begin
             fconstructor,
             apply next (b_newX1 ∪ b_newX2) b_yclaim, -- remains to show nextNextInter
             intros Y1 Y2 Y_in, apply nextInter, unfold endNodesOf,
-            simp only [endNodesOf, finset.mem_mk, multiset.mem_singleton, finset.mem_bUnion, finset.mem_attach, exists_true_left, subtype.exists],
-            use b_newX1 ∪ b_newX2,
-            split, exact Y_in, exact b_yclaim,
+            simp only [endNodesOf, finset.mem_bUnion, finset.mem_attach, exists_true_left, subtype.exists],
+            exact ⟨b_newX1 ∪ b_newX2, b_yclaim, Y_in⟩,
           },
           cases b_childInt with θb b_theta_is_chInt,
           -- finally, combine the two interpolants using disjunction:
@@ -632,9 +622,8 @@ begin
             fconstructor,
             apply next (a_newX1 ∪ a_newX2) a_yclaim, -- remains to show nextNextInter
             intros Y1 Y2 Y_in, apply nextInter, unfold endNodesOf,
-            simp only [endNodesOf, finset.mem_mk, multiset.mem_singleton, finset.mem_bUnion, finset.mem_attach, exists_true_left, subtype.exists],
-            use a_newX1 ∪ a_newX2,
-            split, exact Y_in, exact a_yclaim,
+            simp only [endNodesOf, finset.mem_bUnion, finset.mem_attach, exists_true_left, subtype.exists],
+            exact ⟨a_newX1 ∪ a_newX2, a_yclaim, Y_in⟩,
           },
           cases a_childInt with θa a_theta_is_chInt,
           -- now get an interpolant for the ~ψ branch:
@@ -652,9 +641,8 @@ begin
             fconstructor,
             apply next (b_newX1 ∪ b_newX2) b_yclaim, -- remains to show nextNextInter
             intros Y1 Y2 Y_in, apply nextInter, unfold endNodesOf,
-            simp only [endNodesOf, finset.mem_mk, multiset.mem_singleton, finset.mem_bUnion, finset.mem_attach, exists_true_left, subtype.exists],
-            use b_newX1 ∪ b_newX2,
-            split, exact Y_in, exact b_yclaim,
+            simp only [endNodesOf, finset.mem_bUnion, finset.mem_attach, exists_true_left, subtype.exists],
+            exact ⟨b_newX1 ∪ b_newX2, b_yclaim, Y_in⟩,
           },
           cases b_childInt with θb b_theta_is_chInt,
           -- finally, combine the two interpolants using conjunction:
