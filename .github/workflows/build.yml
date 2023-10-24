@@ -11,7 +11,7 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: ${{ env.GIT_HISTORY_DEPTH }}
 
@@ -24,9 +24,9 @@ jobs:
 
       - name: install Python
         if: ${{ ! 0 }}
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v4
         with:
-          python-version: 3.8
+          python-version: 3.11
 
       - name: install mathlibtools
         run: python -m pip install --upgrade pip mathlibtools
@@ -45,7 +45,7 @@ jobs:
     name: Stats
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: install ripgrep
         run: sudo apt install -y ripgrep
